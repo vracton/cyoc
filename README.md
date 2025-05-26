@@ -1,4 +1,6 @@
-## Devvit React Starter Experimental
+## Devvit Bolt Starter Experimental
+
+(forked from https://github.com/reddit/devvit-react-starter-experimental)
 
 An experimental starter that explores a new way to build applications on Reddit's developer platform.
 
@@ -11,30 +13,48 @@ An experimental starter that explores a new way to build applications on Reddit'
 
 ## Getting Started
 
-### Prerequisites
+This template is made specifically to work with [Bolt](https://bolt.new).
+As soon as the project is checked out you will get the following errors.
+**This is expected**!
 
-> Make sure you have Node 22 downloaded on your machine before running!
+```
+❌  Authentication: Please run npm run login to authenticate with Reddit
+❌  App initialization: Please run npm run devvit:init to setup your app remotely
+❌  Playtest subreddit: Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json
+```
 
-1. **Create your project from the template**
-   <br /><img src="https://github.com/user-attachments/assets/a234a6d6-42ff-4188-b5b9-79d7573c9300" width="400" />
-2. **Set up your new repo**
-   <br /><img src="https://github.com/user-attachments/assets/590d7457-4751-461c-896b-a54abcb72022" width="400" />
-3. **Clone the repo down to your computer**
-   <br /><img src="https://github.com/user-attachments/assets/a09cf721-4605-4c7e-beae-1e7bd665c4fa" width="400" />
-4. `cd your-app-name`
-5. `npm install`
-6. **Make a subreddit**: Make a private subreddit on Reddit.com. This will be where you do your own development. Go to Reddit.com, scroll the left side bar down to communities, and click "Create a community."
-7. **Update the name in package.json**: Find the `dev:devvit` command and replace `YOUR_SUBREDDIT_NAME` with the subreddit name you just created.
-8. **Upload**: Run `npm run deploy` and go through the prompts
-9. **Playtest**: Run `npm run dev` to playtest your application in production by going to your subreddit.
-10. **Create Post**: Create a post using the subreddit menu action called "Word Guesser: New Post".
+### Step 1: Login
 
-## Commands
+Run `npm run login` to authenticate with Reddit. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`. After that you, if you run `npm run dev` again, you should get the following:
 
-- `npm run dev`: Starts a development server where you can develop your application live on Reddit.
-- `npm run deploy`: Uploads a new version of your app
-- `npm run check`: Type checks, lints, and prettifies your app
+```
+✅  Authentication: You're logged in to Devvit!
+❌  App initialization: Please run npm run devvit:init to setup your app remotely
+❌  Playtest subreddit: Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json
+```
 
-## Cursor Integration
+### Step 2: App Initialization
 
-This template comes with a pre-configured cursor environment. To get started, [download cursor](https://www.cursor.com/downloads) and enable the `devvit-mcp` when prompted.
+Run `npm run devvit:init` and follow the steps. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`. After that you, if you run `npm run dev` again, you should get the following:
+
+```
+✅  Authentication: You're logged in to Devvit!
+✅  App initialization: App has been initialized
+❌  Playtest subreddit: Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json
+```
+
+### Step 3: Playtest subreddit
+
+For this step, you will need to go to Reddit and create an empty subreddit for you to test your app. You can do this by following going to [Reddit](https://www.reddit.com) and clicking the **"Create a Community"** button in the left-side navigation. Once you create your community, paste the name of the subreddit (for example if you community is reddit.com/r/my_test_subreddit, you will paste `my_test_subreddit`) into the `package.json` file, replacing the string `YOUR_SUBREDDIT_NAME`. After that, if you run `npm run dev` again, all checks should pass and you should be able to test your application on Reddit.
+
+```
+✅  Authentication: You're logged in to Devvit!
+✅  App initialization: App has been initialized
+✅  Playtest subreddit: Subreddit is configured!
+
+All checks passed! Starting development server...
+```
+
+### Step 4: Testing your app
+
+Once the initial configuration is done, you can test your application by navigating to your test subreddit, clicking the three dots icon on the top-right and creating a new post. The command will be called `[Bolt Word Guesser] New Post`. Once you create a new post you can go back and forth with Bolt by prompting your way to making your app and testing it on Reddit
