@@ -10,7 +10,10 @@ An experimental starter that explores a new way to build applications on Reddit'
 
 ## Getting Started
 
-This template is made specifically to work with [Bolt](https://bolt.new).
+This template is made specifically to work with [Bolt.new](https://bolt.new)
+
+[Click here to test this template in Bolt](https://bolt.new/github.com/reddit/devvit-bolt-starter-experimental)
+
 As soon as the project is checked out you will get the following errors.
 **This is expected**!
 
