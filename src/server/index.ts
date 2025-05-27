@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer } from 'node:http';
+import { createServer } from '@devvit/server';
 
 import { devvitMiddleware } from './middleware';
 import { CheckResponse, InitResponse, LetterState } from '../shared/types/game';
