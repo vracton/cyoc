@@ -4,12 +4,9 @@
 
 An experimental starter that explores a new way to build applications on Reddit's developer platform.
 
-- [Devvit](https://developers.reddit.com/): A way to build and deploy immersive games on Reddit
-- [Vite](https://vite.dev/): For compiling the webView
-- [React](https://react.dev/): For UI
-- [Express](https://expressjs.com/): For backend logic
-- [Tailwind](https://tailwindcss.com/): For styles
-- [Typescript](https://www.typescriptlang.org/): For type safety
+## Video Tutorial
+
+[![Video Tutorial](video-preview.png)](https://www.youtube.com/watch?v=bcOm7NE30c4)
 
 ## Getting Started
 
