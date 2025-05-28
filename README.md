@@ -9,7 +9,6 @@ An experimental starter that explores a new way to build applications on Reddit'
 [![Video Tutorial](docs-img/video-preview.png)](https://www.youtube.com/watch?v=bcOm7NE30c4)
 
 ## Getting Started
-
 This template is made specifically to work with **Bolt.new**.
 Click the button below to open this template directly in Bolt:
 
