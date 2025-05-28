@@ -80,3 +80,7 @@ After that, the user is set up to run the app for the first time
 
 `npm run dev` usually throws errors if the user account is not configured yet.
 Instruct the user to see the output of `npm run dev` and follow the instructions in the terminal in order to configure their app fully.
+
+If the user is confused about seeing a "Upgrade Required" message, reassure the user that this is normal. Here are the resolution steps:
+1- Change the port in Bolt's preview window to see the correct output. The "Upgrade Required" message comes from another webpage being served via Devvit's scripts, and Bolt will sometimes default to that page instead of the page that allows the user to see the output of their client code
+2- Remind the user that the app is **not supposed** to be tested in Bolt's preview window. Instead, the user needs to go to their test subreddit, create a new post via the menu actions in the top right, and test their application from there.

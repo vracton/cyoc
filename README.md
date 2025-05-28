@@ -26,15 +26,30 @@ As soon as the project is checked out you will get the following errors.
 
 ### Step 1: Login
 
-In bolt terminal, run `npm run login` to authenticate with Reddit. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
+In bolt terminal, run
+
+```
+npm run login
+```
+
+This will authenticate with Reddit. You will be prompted to follow a link and paste an authentication code.
+Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
 
 ### Step 2: App Initialization
 
-In bolt terminal, run `npm run devvit:init` and follow the steps. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
+In bolt terminal, run
+
+```
+npm run devvit:init
+```
+
+This will get your app set up with Devvit. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
 
 ### Step 3: Playtest subreddit
 
-For this step, you will need to go to Reddit and create an empty subreddit for you to test your app. You can do this by following going to [Reddit](https://www.reddit.com) and clicking the **"Create a Community"** button in the left-side navigation. Once you create your community, paste the name of the subreddit (for example if you community is reddit.com/r/my_test_subreddit, you will paste `my_test_subreddit`) into the `package.json` file, replacing the string `YOUR_SUBREDDIT_NAME`.
+For this step, you will need to go to Reddit and create an empty subreddit for you to test your app.
+
+You can do this by following going to [Reddit](https://www.reddit.com) and clicking the **"Create a Community"** button in the left-side navigation. Once you create your community, paste the name of the subreddit (for example if you community is reddit.com/r/my_test_subreddit, you will paste `my_test_subreddit`) into the `package.json` file, replacing the string `YOUR_SUBREDDIT_NAME`.
 
 After that, if you run `npm run dev` again, all checks should pass and you should be able to test your application on Reddit.
 

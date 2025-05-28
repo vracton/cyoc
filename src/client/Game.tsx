@@ -41,6 +41,12 @@ export const Game: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [allowInput, setAllowInput] = useState(true);
   const [grid, setGrid] = useState('');
+  const [showBanner, setShowBanner] = useState(false);
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    setShowBanner(!hostname.endsWith('devvit.net'));
+  }, []);
 
   const showMessage = useCallback((msg: string, time = 2000) => {
     setMessage(msg);
@@ -212,6 +218,11 @@ export const Game: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
+      {showBanner && (
+        <div className="w-full bg-red-600 text-white p-4 text-center mb-4">
+          Please visit your playtest subreddit to play the game with network functionality.
+        </div>
+      )}
       {message && (
         <div className="message">
           {message}
