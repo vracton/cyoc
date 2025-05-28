@@ -9,7 +9,7 @@ An experimental starter that explores a new way to build applications on Reddit'
 [![Video Tutorial](video-preview.png)](https://www.youtube.com/watch?v=bcOm7NE30c4)
 
 ## Getting Started
-
+ 
 This template is made specifically to work with [Bolt.new](https://bolt.new)
 
 [Click here to test this template in Bolt](https://bolt.new/github.com/reddit/devvit-bolt-starter-experimental)
