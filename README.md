@@ -11,7 +11,7 @@ An experimental starter that explores a new way to build applications on Reddit'
 This template is made specifically to work with **Bolt.new**.
 Click the button below to open this template directly in Bolt:
 
-[![Open In Bolt](docs-img/open-in-bolt-1x.png)](https://bolt.new/github.com/reddit/devvit-bolt-starter-experimental)
+<a href="https://bolt.new/github.com/reddit/devvit-bolt-starter-experimental"><img src="docs-img/open-in-bolt-2x.png" heigh="36px" width="199px" alt="Open in Bolt"></a>
 
 As soon as the project is checked out you will get the following errors.
 **This is expected**!
