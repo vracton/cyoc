@@ -18,7 +18,7 @@ function updateDevvitName() {
   const devvitYamlPath = path.join(process.cwd(), 'devvit.yaml');
   const content = fs.readFileSync(devvitYamlPath, 'utf8');
   const parsedYaml = yaml.parse(content);
-  
+
   if (parsedYaml.name === 'YOUR_APP_NAME') {
     const suffix = generateRandomSuffix(6);
     parsedYaml.name = `bolt-${suffix}`;
@@ -37,7 +37,9 @@ async function runChecks() {
   checks.push({
     name: 'Authentication',
     passed: isLoggedIn,
-    message: isLoggedIn ? "You're logged in to Devvit!" : 'Please run npm run login to authenticate with Reddit'
+    message: isLoggedIn
+      ? "You're logged in to Devvit!"
+      : 'Please run `npm run login` to authenticate with Reddit',
   });
 
   // Check 2: App upload check
@@ -46,7 +48,9 @@ async function runChecks() {
   checks.push({
     name: 'App initialization',
     passed: isUploaded,
-    message: isUploaded ? 'App has been initialized' : 'Please run npm run devvit:init to setup your app remotely'
+    message: isUploaded
+      ? 'App has been initialized'
+      : 'Please run `npm run devvit:init` to setup your app remotely',
   });
 
   // Check 3: Subreddit configuration
@@ -58,11 +62,13 @@ async function runChecks() {
   checks.push({
     name: 'Playtest subreddit',
     passed: hasSubreddit,
-    message: hasSubreddit ? 'Subreddit is configured!' : 'Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json'
+    message: hasSubreddit
+      ? 'Subreddit is configured!'
+      : 'Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json',
   });
 
   // Print check results
-  checks.forEach(check => {
+  checks.forEach((check) => {
     const emoji = check.passed ? '✅' : '❌';
     console.log(`${emoji}  ${check.name}: ${check.message}`);
     if (!check.passed) allPassed = false;
@@ -102,4 +108,3 @@ async function main() {
 }
 
 main();
-

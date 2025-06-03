@@ -1,6 +1,6 @@
 import { Context } from '@devvit/public-api';
-import { RequestContext } from '@devvit/server';
 import { getWordOfTheDay } from './words';
+import { RedisClient } from '@devvit/redis';
 
 type PostConfig = {
   wordOfTheDay: string;
@@ -44,10 +44,10 @@ export const postConfigSet = async ({
 };
 
 export const postConfigNew = async ({
-  ctx,
+  redis,
   postId,
 }: {
-  ctx: Context | RequestContext;
+  redis: Context['redis'] | RedisClient;
   postId: string;
 }): Promise<void> => {
   const wordOfTheDay = getWordOfTheDay();
@@ -56,8 +56,5 @@ export const postConfigNew = async ({
     throw new Error('No word of the day found');
   }
 
-  await ctx.redis.set(
-    getPostConfigKey(postId),
-    JSON.stringify({ wordOfTheDay } satisfies PostConfig)
-  );
+  await redis.set(getPostConfigKey(postId), JSON.stringify({ wordOfTheDay } satisfies PostConfig));
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Keyboard } from './Keyboard';
 import { LetterState, CheckResponse } from '../shared/types/game';
+import packageJson from '../../package.json' with { type: 'json' };
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -22,6 +23,63 @@ const genResultGrid = (currentBoard: Tile[][], lastRowIndex: number): string => 
     .slice(0, lastRowIndex + 1)
     .map((row) => row.map((tile) => icons[tile.state] || ' ').join(''))
     .join('\n');
+};
+
+function extractSubredditName(): string | null {
+  const devCommand = packageJson.scripts?.['dev:devvit'];
+
+  if (!devCommand || !devCommand.includes('devvit playtest')) {
+    console.warn('"dev:devvit" script is missing or malformed.');
+    return null;
+  }
+
+  // Match the args after 'devvit playtest'
+  const argsMatch = devCommand.match(/devvit\s+playtest\s+(.*)/);
+  if (!argsMatch || !argsMatch[1]) {
+    console.warn('Could not parse arguments in dev:devvit script.');
+    return null;
+  }
+
+  const args = argsMatch[1].trim().split(/\s+/);
+
+  // Find the first token that is not a flag (doesn't start with "-" or "--")
+  const subreddit = args.find((arg) => !arg.startsWith('-'));
+
+  if (!subreddit) {
+    console.warn('No subreddit name found in dev:devvit command.');
+    return null;
+  }
+
+  return subreddit;
+}
+
+const Banner = () => {
+  const subreddit = extractSubredditName();
+  if (!subreddit) {
+    return (
+      <div className="w-full bg-red-600 text-white p-4 text-center mb-4">
+        Please visit your playtest subreddit to play the game with network functionality.
+      </div>
+    );
+  }
+
+  const subredditUrl = `https://www.reddit.com/r/${subreddit}`;
+
+  return (
+    <div className="w-full bg-red-600 text-white p-4 text-center mb-4">
+      Please visit{' '}
+      <a
+        href={subredditUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline font-bold"
+      >
+        r/{subreddit}
+      </a>{' '}
+      to play the game with network functionality. Remember to create a post from the three dots
+      (beside the mod tools button).
+    </div>
+  );
 };
 
 export const Game: React.FC = () => {
@@ -218,11 +276,7 @@ export const Game: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
-      {showBanner && (
-        <div className="w-full bg-red-600 text-white p-4 text-center mb-4">
-          Please visit your playtest subreddit to play the game with network functionality.
-        </div>
-      )}
+      {showBanner && <Banner />}
       {message && (
         <div className="message">
           {message}

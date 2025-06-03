@@ -1,10 +1,11 @@
 import express from 'express';
-import { createServer } from '@devvit/server';
+import { createServer, getServerPort } from '@devvit/server';
 
 import { devvitMiddleware } from './middleware';
 import { CheckResponse, InitResponse, LetterState } from '../shared/types/game';
 import { postConfigGet, postConfigNew, postConfigMaybeGet } from './core/post';
 import { allWords } from './core/words';
+import { getRedis } from '@devvit/redis';
 
 const app = express();
 
@@ -38,7 +39,7 @@ router.get<{ postId: string }, InitResponse | { status: string; message: string 
       let config = await postConfigMaybeGet({ redis, postId });
       if (!config || !config.wordOfTheDay) {
         console.log(`No valid config found for post ${postId}, creating new one.`);
-        await postConfigNew({ ctx: req.devvit, postId });
+        await postConfigNew({ redis: getRedis(), postId });
         config = await postConfigGet({ redis, postId });
       }
 
@@ -153,7 +154,7 @@ router.post<{ postId: string }, CheckResponse, { guess: string }>(
 app.use(router);
 
 // Get port from environment variable with fallback
-const port = process.env.WEBBIT_PORT || 3000;
+const port = getServerPort();
 
 const server = createServer(app);
 server.on('error', (err) => console.error(`server error; ${err.stack}`));

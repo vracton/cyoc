@@ -17,8 +17,8 @@ As soon as the project is checked out you will get the following errors.
 **This is expected**!
 
 ```
-❌  Authentication: Please run npm run login to authenticate with Reddit
-❌  App initialization: Please run npm run devvit:init to setup your app remotely
+❌  Authentication: Please run `npm run login` to authenticate with Reddit
+❌  App initialization: Please run `npm run devvit:init` to setup your app remotely
 ❌  Playtest subreddit: Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json
 ```
 

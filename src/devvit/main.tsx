@@ -59,7 +59,7 @@ Devvit.addMenuItem({
         preview: <Preview />,
       });
       await postConfigNew({
-        ctx: context,
+        redis: context.redis,
         postId: post.id,
       });
       ui.showToast({ text: 'Created post!' });
