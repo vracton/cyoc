@@ -1,7 +1,5 @@
 import express from 'express';
-import { createServer, getServerPort } from '@devvit/server';
-
-import { devvitMiddleware } from './middleware';
+import { createServer, getContext, getServerPort } from '@devvit/server';
 import { CheckResponse, InitResponse, LetterState } from '../shared/types/game';
 import { postConfigGet, postConfigNew, postConfigMaybeGet } from './core/post';
 import { allWords } from './core/words';
@@ -16,15 +14,13 @@ app.use(express.urlencoded({ extended: true }));
 // Middleware for plain text body parsing
 app.use(express.text());
 
-// Apply Devvit middleware
-app.use(devvitMiddleware);
-
 const router = express.Router();
 
 router.get<{ postId: string }, InitResponse | { status: string; message: string }>(
   '/api/init',
-  async (req, res): Promise<void> => {
-    const { postId, redis } = req.devvit;
+  async (_req, res): Promise<void> => {
+    const { postId } = getContext();
+    const redis = getRedis();
 
     if (!postId) {
       console.error('API Init Error: postId not found in devvit context');
@@ -67,7 +63,8 @@ router.post<{ postId: string }, CheckResponse, { guess: string }>(
   '/api/check',
   async (req, res): Promise<void> => {
     const { guess } = req.body;
-    const { postId, userId, redis } = req.devvit;
+    const { postId, userId } = getContext();
+    const redis = getRedis();
 
     if (!postId) {
       res.status(400).json({ status: 'error', message: 'postId is required' });
