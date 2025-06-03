@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Keyboard } from './Keyboard';
 import { LetterState, CheckResponse } from '../shared/types/game';
-import packageJson from '../../package.json' with { type: 'json' };
+import packageJson from '../../package.json';
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
