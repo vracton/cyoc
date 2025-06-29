@@ -1,4 +1,4 @@
-import { Devvit, Post } from '@devvit/public-api';
+import { Devvit, Post, useWebView } from '@devvit/public-api';
 
 // Side effect import to bundle the server. The /index is required for server splitting.
 import '../server/index';
@@ -131,7 +131,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId } = context;
 
-  const webView = Devvit.useWebView<WebViewMessage, DevvitMessage>({
+  const webView = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
     onMessage: async (message, webView) => {
       console.log('Received message from web view:', message);
