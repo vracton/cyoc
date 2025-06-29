@@ -59,127 +59,6 @@ const Banner = () => {
   );
 };
 
-// Create Game Form Component - Direct form display
-const CreateGameForm: React.FC<{ onSubmit: (data: any) => void; onCancel: () => void }> = ({ onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    initialPrompt: '',
-    chaosLevel: '1'
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title || !formData.initialPrompt || !formData.chaosLevel) {
-      alert('Please fill in all fields!');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onSubmit({
-        title: formData.title,
-        initialPrompt: formData.initialPrompt,
-        chaosLevel: parseInt(formData.chaosLevel)
-      });
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold text-white mb-6 text-center">Create Your Chaos Story</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
-            Story Title *
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Enter a catchy title for your story"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="initialPrompt" className="block text-sm font-medium text-gray-300 mb-2">
-            Starting Scenario *
-          </label>
-          <textarea
-            id="initialPrompt"
-            value={formData.initialPrompt}
-            onChange={(e) => setFormData({ ...formData, initialPrompt: e.target.value })}
-            placeholder="Describe the initial situation or setting for your story..."
-            rows={4}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="chaosLevel" className="block text-sm font-medium text-gray-300 mb-2">
-            Chaos Level *
-          </label>
-          <select
-            id="chaosLevel"
-            value={formData.chaosLevel}
-            onChange={(e) => setFormData({ ...formData, chaosLevel: e.target.value })}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          >
-            <option value="1">1 - Mild (Slightly unpredictable)</option>
-            <option value="2">2 - Moderate (Some surprises)</option>
-            <option value="3">3 - Wild (Significant twists)</option>
-            <option value="4">4 - Extreme (Highly unpredictable)</option>
-            <option value="5">5 - Maximum Chaos (Completely absurd)</option>
-          </select>
-        </div>
-
-        <div className="flex space-x-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`flex-1 font-bold py-3 px-6 rounded-md transition duration-200 ${
-              isSubmitting 
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {isSubmitting ? 'Creating Story...' : 'Create Story'}
-          </button>
-          
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-md transition duration-200 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-      
-      <div className="text-sm text-gray-400 mt-6">
-        <div className="p-3 bg-blue-900 rounded-md">
-          <p className="text-blue-200 text-xs">
-            <strong>How it works:</strong> Fill out the form above to create your interactive chaos story. 
-            The AI will generate an engaging opening scene with choices for players to make!
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
   const [game, setGame] = useState<ChaosGame | null>(null);
   const [currentScene, setCurrentScene] = useState<GameScene | null>(null);
@@ -295,7 +174,7 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
 };
 
 export const Game: React.FC = () => {
-  const [gameMode, setGameMode] = useState<'menu' | 'create' | 'play'>('menu');
+  const [gameMode, setGameMode] = useState<'menu' | 'play'>('menu');
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [message, setMessage] = useState<string>('');
@@ -303,52 +182,32 @@ export const Game: React.FC = () => {
   useEffect(() => {
     const hostname = window.location.hostname;
     setShowBanner(!hostname.endsWith('devvit.net'));
+
+    // Listen for messages from Devvit
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'gameCreated') {
+        setCurrentGameId(event.data.data.gameId);
+        setGameMode('play');
+        setMessage(`Game created successfully! Game ID: ${event.data.data.gameId}`);
+      } else if (event.data?.type === 'error') {
+        setMessage(`Error: ${event.data.data.message}`);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    // Send ready message to Devvit
+    window.parent?.postMessage({ type: 'webViewReady' }, '*');
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
-  const handleFormSubmit = async (formData: any) => {
-    try {
-      const response = await fetch('/api/chaos/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      const result = await response.json();
-      
-      if (result.status === 'success') {
-        setMessage(`Game created successfully! Game ID: ${result.gameId}`);
-        setCurrentGameId(result.gameId);
-        setGameMode('play');
-      } else {
-        setMessage(`Error: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error creating game:', error);
-      setMessage('Network error creating game');
-    }
+  const handleCreateStoryClick = () => {
+    // Send message to Devvit to show the form
+    window.parent?.postMessage({ type: 'showCreateForm' }, '*');
   };
-
-  const handleFormCancel = () => {
-    setGameMode('menu');
-    setMessage('');
-  };
-
-  // Create game form mode
-  if (gameMode === 'create') {
-    return (
-      <div className="flex flex-col h-full items-center pt-8 pb-2 box-border">
-        {showBanner && <Banner />}
-        <CreateGameForm onSubmit={handleFormSubmit} onCancel={handleFormCancel} />
-        {message && (
-          <div className={`mt-4 p-4 rounded-md max-w-2xl ${
-            message.includes('Error') ? 'bg-red-800' : 'bg-green-800'
-          }`}>
-            <p className="text-white">{message}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Play game mode
   if (gameMode === 'play' && currentGameId) {
@@ -380,15 +239,15 @@ export const Game: React.FC = () => {
         
         <div className="space-y-4">
           <button
-            onClick={() => setGameMode('create')}
+            onClick={handleCreateStoryClick}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition duration-200"
           >
             Create New Chaos Story
           </button>
           
           <div className="text-gray-400 text-sm mt-4">
-            <p>Click the button above to immediately open the story creation form</p>
-            <p>No additional requests needed - the form displays directly</p>
+            <p>Click the button above to open the Devvit native form</p>
+            <p>The form will appear as a modal overlay from the Devvit system</p>
           </div>
         </div>
         

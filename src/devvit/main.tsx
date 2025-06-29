@@ -63,47 +63,6 @@ const formConfig = {
   cancelLabel: 'Cancel'
 };
 
-const formHandler = async (event: any, context: any) => {
-  const { ui, redis, postId, userId } = context;
-  const values = event.values;
-
-  if (!values.title || !values.initialPrompt || !values.chaosLevel) {
-    ui.showToast({ text: 'Please fill in all fields!' });
-    return;
-  }
-
-  try {
-    // Import the chaos game creation function directly
-    const { createChaosGame } = await import('../server/core/chaos-game');
-    
-    // Create the chaos game directly via server function
-    const result = await createChaosGame({
-      title: values.title,
-      initialPrompt: values.initialPrompt,
-      chaosLevel: parseInt(values.chaosLevel as string)
-    }, { redis, userId });
-
-    if (result.status === 'error') {
-      throw new Error(result.message);
-    }
-
-    // Store the game ID in the post config for later retrieval
-    if (postId) {
-      await redis.set(`post_game:${postId}`, result.gameId);
-    }
-
-    ui.showToast({ text: 'Chaos story created successfully!' });
-    
-  } catch (error) {
-    console.error('Error creating chaos story:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    ui.showToast({ text: `Error creating story: ${errorMessage}` });
-  }
-};
-
-// Create the form at the root level for menu actions
-const createChaosStoryForm = Devvit.createForm(formConfig, formHandler);
-
 export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
@@ -129,8 +88,62 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, ui, redis } = context;
 
+  // Create form handler that can communicate with web view
+  const createFormHandler = async (event: any, formContext: any) => {
+    const values = event.values;
+
+    if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+      ui.showToast({ text: 'Please fill in all fields!' });
+      return;
+    }
+
+    try {
+      // Import the chaos game creation function directly
+      const { createChaosGame } = await import('../server/core/chaos-game');
+      
+      // Create the chaos game directly via server function
+      const result = await createChaosGame({
+        title: values.title,
+        initialPrompt: values.initialPrompt,
+        chaosLevel: parseInt(values.chaosLevel as string)
+      }, { redis, userId });
+
+      if (result.status === 'error') {
+        throw new Error(result.message);
+      }
+
+      // Store the game ID in the post config for later retrieval
+      if (postId) {
+        await redis.set(`post_game:${postId}`, result.gameId);
+      }
+
+      ui.showToast({ text: 'Chaos story created successfully!' });
+      
+      // Send success message to web view if it exists
+      if (webView) {
+        webView.postMessage({
+          type: 'gameCreated',
+          data: { gameId: result.gameId }
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error creating chaos story:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      ui.showToast({ text: `Error creating story: ${errorMessage}` });
+      
+      // Send error message to web view if it exists
+      if (webView) {
+        webView.postMessage({
+          type: 'error',
+          data: { message: errorMessage }
+        });
+      }
+    }
+  };
+
   // Register form within component context using useForm
-  const showCreateForm = useForm(formConfig, formHandler);
+  const showCreateForm = useForm(formConfig, createFormHandler);
 
   const webView = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
@@ -196,6 +209,40 @@ const App: Devvit.BlockComponent = (context) => {
     </vstack>
   );
 };
+
+// Create the form at the root level for menu actions
+const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context) => {
+  const { ui, redis } = context;
+  const values = event.values;
+
+  if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+    ui.showToast({ text: 'Please fill in all fields!' });
+    return;
+  }
+
+  try {
+    // Import the chaos game creation function directly
+    const { createChaosGame } = await import('../server/core/chaos-game');
+    
+    // Create the chaos game directly via server function
+    const result = await createChaosGame({
+      title: values.title,
+      initialPrompt: values.initialPrompt,
+      chaosLevel: parseInt(values.chaosLevel as string)
+    }, { redis, userId: context.userId });
+
+    if (result.status === 'error') {
+      throw new Error(result.message);
+    }
+
+    ui.showToast({ text: 'Chaos story created successfully!' });
+    
+  } catch (error) {
+    console.error('Error creating chaos story:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    ui.showToast({ text: `Error creating story: ${errorMessage}` });
+  }
+});
 
 // Menu action for creating chaos games
 Devvit.addMenuItem({
