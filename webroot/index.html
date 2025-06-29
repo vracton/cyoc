@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Own Chaos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="loading" class="screen">
+            <div class="loading-content">
+                <h1>Choose Your Own Chaos</h1>
+                <p>Loading your interactive story...</p>
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <div id="menu" class="screen hidden">
+            <div class="menu-content">
+                <h1>Choose Your Own Chaos</h1>
+                <p>Create and play interactive stories where your choices shape the narrative!</p>
+                <button id="createStoryBtn" class="primary-btn">Create New Chaos Story</button>
+                <div id="status" class="status-message"></div>
+            </div>
+        </div>
+
+        <div id="game" class="screen hidden">
+            <div class="game-content">
+                <div class="game-header">
+                    <h1 id="gameTitle"></h1>
+                    <div class="game-info">
+                        <span id="chaosLevel"></span>
+                        <span id="sceneId"></span>
+                    </div>
+                </div>
+                
+                <div class="scene-content">
+                    <h2 id="sceneTitle"></h2>
+                    <p id="sceneDescription"></p>
+                </div>
+
+                <div id="choices" class="choices-container">
+                    <!-- Choices will be populated dynamically -->
+                </div>
+
+                <div id="ending" class="ending-content hidden">
+                    <h2>The End</h2>
+                    <p>Thank you for playing!</p>
+                    <button id="backToMenuBtn" class="secondary-btn">Back to Menu</button>
+                </div>
+
+                <button id="backBtn" class="back-btn">← Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
