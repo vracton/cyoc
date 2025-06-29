@@ -147,7 +147,7 @@ const CreateGameInterface: React.FC = () => {
           <div className="mt-4 p-3 bg-blue-900 rounded-md">
             <p className="text-blue-200 text-xs">
               <strong>How it works:</strong> The form will open as a Devvit modal overlay. 
-              Fill it out and click "Create Story" to generate your interactive chaos story using AI!
+              Fill it out and click "Create Story\" to generate your interactive chaos story using AI!
             </p>
           </div>
         </div>
