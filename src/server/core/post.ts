@@ -5,6 +5,7 @@ import { GameState } from '../../shared/types/game';
 type PostConfig = {
   gameId: string;
   createdAt: number;
+  wordOfTheDay?: string;
 };
 
 const getPostConfigKey = (postId: string) => `post_config:${postId}` as const;
@@ -56,7 +57,8 @@ export const postConfigNew = async ({
   
   await redis.set(getPostConfigKey(postId), JSON.stringify({ 
     gameId,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    wordOfTheDay: 'chaos' // Default word for legacy compatibility
   } satisfies PostConfig));
 };
 

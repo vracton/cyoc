@@ -1,3 +1,5 @@
+export type LetterState = 'correct' | 'present' | 'absent' | 'initial';
+
 type Response<T> = { status: 'error'; message: string } | ({ status: 'success' } & T);
 
 export interface GameChoice {
@@ -24,9 +26,48 @@ export interface GameState {
   }>;
 }
 
+export interface ChaosGame {
+  id: string;
+  title: string;
+  initialPrompt: string;
+  chaosLevel: number;
+  createdAt: number;
+  createdBy: string;
+  currentScene: GameScene;
+  storyHistory: Array<{
+    sceneId: string;
+    choiceId: string;
+    choiceText: string;
+    timestamp: number;
+    chosenBy: string;
+  }>;
+}
+
+export type ChaosLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface CreateGameRequest {
+  title: string;
+  initialPrompt: string;
+  chaosLevel: ChaosLevel;
+}
+
+export interface MakeChoiceRequest {
+  gameId: string;
+  choiceId: string;
+}
+
 export type InitResponse = Response<{
   postId: string;
   gameState: GameState;
+}>;
+
+export type CreateGameResponse = Response<{
+  gameId: string;
+  postUrl: string;
+}>;
+
+export type GetGameResponse = Response<{
+  game: ChaosGame;
 }>;
 
 export type MakeChoiceResponse = Response<{
@@ -36,4 +77,10 @@ export type MakeChoiceResponse = Response<{
 
 export type GetSceneResponse = Response<{
   scene: GameScene;
+}>;
+
+export type CheckResponse = Response<{
+  exists: boolean;
+  solved: boolean;
+  correct: [LetterState, LetterState, LetterState, LetterState, LetterState];
 }>;
