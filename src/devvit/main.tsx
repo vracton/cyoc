@@ -11,7 +11,7 @@ defineConfig({
   menu: { enable: false },
 });
 
-export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
+const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
