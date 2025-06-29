@@ -19,39 +19,57 @@ export class ChaosGameService {
   ): Promise<ChaosGame> {
     const gameId = `chaos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Generate the initial scene using Gemini
-    const initialScene = await this.geminiService.generateInitialScene(
-      initialPrompt,
-      chaosLevel,
-      title
-    );
-
-    const game: ChaosGame = {
-      id: gameId,
-      title,
-      initialPrompt,
-      chaosLevel,
-      createdAt: Date.now(),
-      createdBy,
-      currentScene: initialScene,
-      storyHistory: []
-    };
-
-    // Save the game
-    await this.redis.set(getChaosGameKey(gameId), JSON.stringify(game));
+    console.log('Creating chaos game:', { gameId, title, initialPrompt, chaosLevel, createdBy });
     
-    // Add to user's games list
-    const userGamesKey = getGamesByUserKey(createdBy);
-    await this.redis.sadd(userGamesKey, gameId);
+    try {
+      // Generate the initial scene using Gemini
+      const initialScene = await this.geminiService.generateInitialScene(
+        initialPrompt,
+        chaosLevel,
+        title
+      );
 
-    return game;
+      console.log('Generated initial scene:', initialScene);
+
+      const game: ChaosGame = {
+        id: gameId,
+        title,
+        initialPrompt,
+        chaosLevel,
+        createdAt: Date.now(),
+        createdBy,
+        currentScene: initialScene,
+        storyHistory: []
+      };
+
+      // Save the game
+      await this.redis.set(getChaosGameKey(gameId), JSON.stringify(game));
+      
+      // Add to user's games list
+      const userGamesKey = getGamesByUserKey(createdBy);
+      await this.redis.sadd(userGamesKey, gameId);
+
+      console.log('Successfully created and saved chaos game:', gameId);
+      return game;
+    } catch (error) {
+      console.error('Error in createGame:', error);
+      throw new Error(`Failed to create game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async getGame(gameId: string): Promise<ChaosGame | null> {
-    const gameData = await this.redis.get(getChaosGameKey(gameId));
-    if (!gameData) return null;
-    
-    return JSON.parse(gameData);
+    try {
+      const gameData = await this.redis.get(getChaosGameKey(gameId));
+      if (!gameData) {
+        console.log('Game not found:', gameId);
+        return null;
+      }
+      
+      return JSON.parse(gameData);
+    } catch (error) {
+      console.error('Error getting game:', error);
+      return null;
+    }
   }
 
   async makeChoice(
@@ -81,23 +99,28 @@ export class ChaosGameService {
 
     game.storyHistory.push(historyEntry);
 
-    // Generate next scene using Gemini
-    const sceneNumber = game.storyHistory.length;
-    const newScene = await this.geminiService.generateNextScene(
-      game.storyHistory,
-      game.currentScene,
-      chosenChoice.text,
-      game.chaosLevel,
-      sceneNumber
-    );
+    try {
+      // Generate next scene using Gemini
+      const sceneNumber = game.storyHistory.length;
+      const newScene = await this.geminiService.generateNextScene(
+        game.storyHistory,
+        game.currentScene,
+        chosenChoice.text,
+        game.chaosLevel,
+        sceneNumber
+      );
 
-    // Update game with new scene
-    game.currentScene = newScene;
+      // Update game with new scene
+      game.currentScene = newScene;
 
-    // Save updated game
-    await this.redis.set(getChaosGameKey(gameId), JSON.stringify(game));
+      // Save updated game
+      await this.redis.set(getChaosGameKey(gameId), JSON.stringify(game));
 
-    return { game, newScene };
+      return { game, newScene };
+    } catch (error) {
+      console.error('Error making choice:', error);
+      throw new Error(`Failed to generate next scene: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async getUserGames(userId: string): Promise<string[]> {
@@ -128,15 +151,34 @@ export async function createChaosGame(
   context: { redis: RedisClient; userId?: string }
 ): Promise<{ status: 'success'; gameId: string } | { status: 'error'; message: string }> {
   try {
+    console.log('createChaosGame called with:', data, 'userId:', context.userId);
+    
     if (!context.userId) {
       return { status: 'error', message: 'User ID required' };
     }
 
+    // Validate input
+    if (!data.title || !data.initialPrompt || !data.chaosLevel) {
+      return { status: 'error', message: 'Title, initial prompt, and chaos level are required' };
+    }
+
+    if (data.chaosLevel < 1 || data.chaosLevel > 5) {
+      return { status: 'error', message: 'Chaos level must be between 1 and 5' };
+    }
+
     // Initialize services
     const geminiApiKey = "AIzaSyCEkDS-IGaotnNq2koQMipzEMr5XIwbASg";
+    
+    if (!geminiApiKey) {
+      console.error('Gemini API key not available');
+      return { status: 'error', message: 'AI service not configured' };
+    }
+
+    console.log('Initializing Gemini service...');
     const geminiService = new GeminiService(geminiApiKey);
     const chaosGameService = new ChaosGameService(context.redis, geminiService);
 
+    console.log('Creating game via service...');
     // Create the game
     const game = await chaosGameService.createGame(
       data.title,
@@ -145,12 +187,19 @@ export async function createChaosGame(
       context.userId
     );
 
+    console.log('Game created successfully:', game.id);
     return { status: 'success', gameId: game.id };
   } catch (error) {
     console.error('Error in createChaosGame:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create game';
+    console.error('Full error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
+    
     return { 
       status: 'error', 
-      message: error instanceof Error ? error.message : 'Failed to create game' 
+      message: errorMessage
     };
   }
 }

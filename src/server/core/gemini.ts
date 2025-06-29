@@ -57,31 +57,85 @@ Make sure the JSON is valid and properly formatted.
 `;
 
     try {
+      console.log('Generating initial scene with prompt:', prompt);
+      
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
+      console.log('Gemini API response:', text);
+      
       // Clean up the response to extract JSON
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
+        console.error('No valid JSON found in Gemini response:', text);
+        // Return a fallback scene if Gemini fails
+        return this.createFallbackScene(title, initialPrompt, chaosLevel);
       }
       
       const sceneData = JSON.parse(jsonMatch[0]);
+      
+      // Validate the scene data
+      if (!sceneData.title || !sceneData.description || !sceneData.choices || !Array.isArray(sceneData.choices)) {
+        console.error('Invalid scene data structure:', sceneData);
+        return this.createFallbackScene(title, initialPrompt, chaosLevel);
+      }
+
+      if (sceneData.choices.length !== 4) {
+        console.error('Scene does not have exactly 4 choices:', sceneData.choices);
+        return this.createFallbackScene(title, initialPrompt, chaosLevel);
+      }
       
       return {
         id: 'scene_0',
         title: sceneData.title,
         description: sceneData.description,
         choices: sceneData.choices.map((choice: any, index: number) => ({
-          ...choice,
+          id: choice.id || `choice${index + 1}`,
+          text: choice.text,
           nextSceneId: `scene_${index + 1}`
         }))
       };
     } catch (error) {
       console.error('Error generating initial scene:', error);
-      throw new Error('Failed to generate initial scene');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      // Return a fallback scene instead of throwing
+      return this.createFallbackScene(title, initialPrompt, chaosLevel);
     }
+  }
+
+  private createFallbackScene(title: string, initialPrompt: string, chaosLevel: ChaosLevel): GameScene {
+    return {
+      id: 'scene_0',
+      title: `${title} - The Beginning`,
+      description: `${initialPrompt}\n\nYou find yourself at the start of an adventure. The chaos level is set to ${chaosLevel}/5, so expect the unexpected! What will you do first?`,
+      choices: [
+        {
+          id: 'choice1',
+          text: 'Look around carefully and assess the situation',
+          nextSceneId: 'scene_1'
+        },
+        {
+          id: 'choice2',
+          text: 'Take immediate action without hesitation',
+          nextSceneId: 'scene_2'
+        },
+        {
+          id: 'choice3',
+          text: 'Try to find other people or allies',
+          nextSceneId: 'scene_3'
+        },
+        {
+          id: 'choice4',
+          text: 'Do something completely unexpected',
+          nextSceneId: 'scene_4'
+        }
+      ]
+    };
   }
 
   async generateNextScene(
@@ -139,31 +193,95 @@ Make sure the JSON is valid and properly formatted.
 `;
 
     try {
+      console.log('Generating next scene with prompt:', prompt);
+      
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
+      console.log('Gemini API response for next scene:', text);
+      
       // Clean up the response to extract JSON
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
+        console.error('No valid JSON found in next scene response:', text);
+        return this.createFallbackNextScene(chosenChoice, sceneNumber, chaosLevel);
       }
       
       const sceneData = JSON.parse(jsonMatch[0]);
+      
+      // Validate the scene data
+      if (!sceneData.title || !sceneData.description || !sceneData.choices || !Array.isArray(sceneData.choices)) {
+        console.error('Invalid next scene data structure:', sceneData);
+        return this.createFallbackNextScene(chosenChoice, sceneNumber, chaosLevel);
+      }
+
+      if (sceneData.choices.length !== 4) {
+        console.error('Next scene does not have exactly 4 choices:', sceneData.choices);
+        return this.createFallbackNextScene(chosenChoice, sceneNumber, chaosLevel);
+      }
       
       return {
         id: `scene_${sceneNumber}`,
         title: sceneData.title,
         description: sceneData.description,
         choices: sceneData.choices.map((choice: any, index: number) => ({
-          ...choice,
+          id: choice.id || `choice${index + 1}`,
+          text: choice.text,
           nextSceneId: `scene_${sceneNumber + index + 1}`
         })),
         isEnding: sceneNumber > 10 && Math.random() < 0.3 // 30% chance of ending after scene 10
       };
     } catch (error) {
       console.error('Error generating next scene:', error);
-      throw new Error('Failed to generate next scene');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      // Return a fallback scene instead of throwing
+      return this.createFallbackNextScene(chosenChoice, sceneNumber, chaosLevel);
     }
+  }
+
+  private createFallbackNextScene(chosenChoice: string, sceneNumber: number, chaosLevel: ChaosLevel): GameScene {
+    const chaosDescriptions = [
+      'Something unexpected happens...',
+      'The situation takes a surprising turn...',
+      'Chaos ensues as...',
+      'In a twist of fate...',
+      'The unpredictable nature of this adventure reveals itself as...'
+    ];
+
+    const randomDescription = chaosDescriptions[Math.floor(Math.random() * chaosDescriptions.length)];
+
+    return {
+      id: `scene_${sceneNumber}`,
+      title: `Scene ${sceneNumber}: Unexpected Turn`,
+      description: `After choosing to "${chosenChoice}", ${randomDescription} You find yourself in a new situation that requires quick thinking. The chaos level ${chaosLevel}/5 means anything could happen next!`,
+      choices: [
+        {
+          id: 'choice1',
+          text: 'Try to adapt to the new circumstances',
+          nextSceneId: `scene_${sceneNumber + 1}`
+        },
+        {
+          id: 'choice2',
+          text: 'Fight against the unexpected change',
+          nextSceneId: `scene_${sceneNumber + 2}`
+        },
+        {
+          id: 'choice3',
+          text: 'Embrace the chaos and go with the flow',
+          nextSceneId: `scene_${sceneNumber + 3}`
+        },
+        {
+          id: 'choice4',
+          text: 'Try to find a creative solution',
+          nextSceneId: `scene_${sceneNumber + 4}`
+        }
+      ],
+      isEnding: sceneNumber > 10 && Math.random() < 0.3
+    };
   }
 }
