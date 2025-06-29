@@ -1,4 +1,4 @@
-import { Devvit, Post, useWebView } from '@devvit/public-api';
+import { Devvit, Post, useWebView, useForm } from '@devvit/public-api';
 
 // Side effect import to bundle the server. The /index is required for server splitting.
 import '../server/index';
@@ -70,25 +70,16 @@ const formHandler = async (event: any, context: any) => {
   }
 
   try {
-    // Create the chaos game via API call
-    const response = await fetch('/api/chaos/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: values.title,
-        initialPrompt: values.initialPrompt,
-        chaosLevel: parseInt(values.chaosLevel as string)
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create chaos game');
-    }
-
-    const result = await response.json();
+    // Import the chaos game creation function directly
+    const { createChaosGame } = await import('../server/core/chaos-game');
     
+    // Create the chaos game directly via server function
+    const result = await createChaosGame({
+      title: values.title,
+      initialPrompt: values.initialPrompt,
+      chaosLevel: parseInt(values.chaosLevel as string)
+    }, context);
+
     if (result.status === 'error') {
       throw new Error(result.message);
     }
@@ -139,7 +130,7 @@ const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, ui, redis } = context;
 
   // Register form within component context using useForm
-  const showCreateForm = Devvit.useForm(formConfig, formHandler);
+  const showCreateForm = useForm(formConfig, formHandler);
 
   const webView = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
