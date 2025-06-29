@@ -12,7 +12,6 @@ import {
 } from '../shared/types/game';
 import { postConfigGet, postConfigNew, postConfigMaybeGet } from './core/post';
 import { allWords } from './core/words';
-import { getRedis } from '@devvit/redis';
 import { GeminiService } from './core/gemini';
 import { ChaosGameService } from './core/chaos-game';
 
@@ -27,30 +26,32 @@ app.use(express.text());
 
 const router = express.Router();
 
-// Initialize Gemini service with API key from secrets
+// Service instances - will be initialized on first request
 let geminiService: GeminiService | null = null;
 let chaosGameService: ChaosGameService | null = null;
 
-const initializeServices = async () => {
+const ensureServicesInitialized = async () => {
+  if (geminiService && chaosGameService) {
+    return; // Already initialized
+  }
+
   try {
-    const { getSecret } = getContext();
+    const { getSecret, redis } = getContext();
     const geminiApiKey = await getSecret('GEMINI_API_KEY');
     
     if (!geminiApiKey) {
       console.error('GEMINI_API_KEY secret not found. Please set it up in your Devvit app settings.');
-      return;
+      throw new Error('GEMINI_API_KEY not configured');
     }
 
     geminiService = new GeminiService(geminiApiKey);
-    chaosGameService = new ChaosGameService(getRedis(), geminiService);
+    chaosGameService = new ChaosGameService(redis, geminiService);
     console.log('Gemini and ChaosGame services initialized successfully');
   } catch (error) {
     console.error('Failed to initialize services:', error);
+    throw error;
   }
 };
-
-// Initialize services on startup
-initializeServices();
 
 // Chaos Game API Routes
 router.post<{}, CreateGameResponse, CreateGameRequest>(
@@ -61,6 +62,13 @@ router.post<{}, CreateGameResponse, CreateGameRequest>(
 
     if (!userId) {
       res.status(401).json({ status: 'error', message: 'Must be logged in' });
+      return;
+    }
+
+    try {
+      await ensureServicesInitialized();
+    } catch (error) {
+      res.status(500).json({ status: 'error', message: 'Service initialization failed' });
       return;
     }
 
@@ -108,6 +116,13 @@ router.get<{ gameId: string }, GetGameResponse>(
   async (req, res): Promise<void> => {
     const { gameId } = req.params;
 
+    try {
+      await ensureServicesInitialized();
+    } catch (error) {
+      res.status(500).json({ status: 'error', message: 'Service initialization failed' });
+      return;
+    }
+
     if (!chaosGameService) {
       res.status(500).json({ status: 'error', message: 'Game service not initialized' });
       return;
@@ -143,6 +158,13 @@ router.post<{}, MakeChoiceResponse, MakeChoiceRequest>(
 
     if (!userId) {
       res.status(401).json({ status: 'error', message: 'Must be logged in' });
+      return;
+    }
+
+    try {
+      await ensureServicesInitialized();
+    } catch (error) {
+      res.status(500).json({ status: 'error', message: 'Service initialization failed' });
       return;
     }
 
@@ -189,8 +211,7 @@ router.post<{}, MakeChoiceResponse, MakeChoiceRequest>(
 router.get<{ postId: string }, InitResponse | { status: string; message: string }>(
   '/api/init',
   async (_req, res): Promise<void> => {
-    const { postId } = getContext();
-    const redis = getRedis();
+    const { postId, redis } = getContext();
 
     if (!postId) {
       console.error('API Init Error: postId not found in devvit context');
@@ -205,7 +226,7 @@ router.get<{ postId: string }, InitResponse | { status: string; message: string 
       let config = await postConfigMaybeGet({ redis, postId });
       if (!config) {
         console.log(`No valid config found for post ${postId}, creating new one.`);
-        await postConfigNew({ redis: getRedis(), postId });
+        await postConfigNew({ redis, postId });
         config = await postConfigGet({ redis, postId });
       }
 
@@ -231,8 +252,7 @@ router.post<{ postId: string }, CheckResponse, { guess: string }>(
   '/api/check',
   async (req, res): Promise<void> => {
     const { guess } = req.body;
-    const { postId, userId } = getContext();
-    const redis = getRedis();
+    const { postId, userId, redis } = getContext();
 
     if (!postId) {
       res.status(400).json({ status: 'error', message: 'postId is required' });
