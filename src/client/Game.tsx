@@ -59,97 +59,121 @@ const Banner = () => {
   );
 };
 
-// Create Game Interface - Uses Devvit form integration
-const CreateGameInterface: React.FC = () => {
-  const [message, setMessage] = useState<string>('');
-  const [formRequested, setFormRequested] = useState<boolean>(false);
+// Create Game Form Component - Direct form display
+const CreateGameForm: React.FC<{ onSubmit: (data: any) => void; onCancel: () => void }> = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    initialPrompt: '',
+    chaosLevel: '1'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Listen for messages from Devvit
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'devvit-message') {
-        const { message } = event.data;
-        if (message.type === 'gameCreated') {
-          setMessage(`Game created successfully! Game ID: ${message.data.gameId}`);
-          setFormRequested(false);
-        } else if (message.type === 'error') {
-          setMessage(`Error: ${message.data.message}`);
-          setFormRequested(false);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const requestCreateForm = () => {
-    setFormRequested(true);
-    setMessage('Opening Devvit form...');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Send message to Devvit to show the create form
-    window.parent.postMessage({
-      type: 'showCreateForm'
-    }, '*');
+    if (!formData.title || !formData.initialPrompt || !formData.chaosLevel) {
+      alert('Please fill in all fields!');
+      return;
+    }
 
-    // Reset the loading state after a delay since we can't get direct feedback
-    setTimeout(() => {
-      setFormRequested(false);
-      setMessage('Form should have opened. Check for the Devvit modal overlay.');
-    }, 2000);
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        title: formData.title,
+        initialPrompt: formData.initialPrompt,
+        chaosLevel: parseInt(formData.chaosLevel)
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold text-white mb-6 text-center">Create Your Chaos Story</h2>
       
-      <div className="text-center space-y-6">
-        <p className="text-gray-300 text-lg">
-          Click the button below to open the story creation form. This will use Devvit's native form system.
-        </p>
-        
-        <button
-          onClick={requestCreateForm}
-          disabled={formRequested}
-          className={`font-bold py-3 px-6 rounded-md transition duration-200 ${
-            formRequested 
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }`}
-        >
-          {formRequested ? 'Opening Form...' : 'Open Create Story Form'}
-        </button>
-        
-        {message && (
-          <div className={`mt-4 p-4 rounded-md ${
-            message.includes('Error') ? 'bg-red-800' : 'bg-gray-700'
-          }`}>
-            <p className="text-white">{message}</p>
-          </div>
-        )}
-        
-        <div className="text-sm text-gray-400 mt-6">
-          <p className="font-semibold mb-2">The form includes:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li><strong>Story Title:</strong> A catchy title for your story</li>
-            <li><strong>Starting Scenario:</strong> Describe the initial situation</li>
-            <li><strong>Chaos Level:</strong> Choose from 1-5 scale:
-              <ul className="list-disc list-inside ml-4 mt-1 text-xs">
-                <li>1 - Mild (Slightly unpredictable)</li>
-                <li>2 - Moderate (Some surprises)</li>
-                <li>3 - Wild (Significant twists)</li>
-                <li>4 - Extreme (Highly unpredictable)</li>
-                <li>5 - Maximum Chaos (Completely absurd)</li>
-              </ul>
-            </li>
-          </ul>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+            Story Title *
+          </label>
+          <input
+            type="text"
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Enter a catchy title for your story"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="initialPrompt" className="block text-sm font-medium text-gray-300 mb-2">
+            Starting Scenario *
+          </label>
+          <textarea
+            id="initialPrompt"
+            value={formData.initialPrompt}
+            onChange={(e) => setFormData({ ...formData, initialPrompt: e.target.value })}
+            placeholder="Describe the initial situation or setting for your story..."
+            rows={4}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="chaosLevel" className="block text-sm font-medium text-gray-300 mb-2">
+            Chaos Level *
+          </label>
+          <select
+            id="chaosLevel"
+            value={formData.chaosLevel}
+            onChange={(e) => setFormData({ ...formData, chaosLevel: e.target.value })}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          >
+            <option value="1">1 - Mild (Slightly unpredictable)</option>
+            <option value="2">2 - Moderate (Some surprises)</option>
+            <option value="3">3 - Wild (Significant twists)</option>
+            <option value="4">4 - Extreme (Highly unpredictable)</option>
+            <option value="5">5 - Maximum Chaos (Completely absurd)</option>
+          </select>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`flex-1 font-bold py-3 px-6 rounded-md transition duration-200 ${
+              isSubmitting 
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {isSubmitting ? 'Creating Story...' : 'Create Story'}
+          </button>
           
-          <div className="mt-4 p-3 bg-blue-900 rounded-md">
-            <p className="text-blue-200 text-xs">
-              <strong>How it works:</strong> The form will open as a Devvit modal overlay. 
-              Fill it out and click "Create Story\" to generate your interactive chaos story using AI!
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-md transition duration-200 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+      
+      <div className="text-sm text-gray-400 mt-6">
+        <div className="p-3 bg-blue-900 rounded-md">
+          <p className="text-blue-200 text-xs">
+            <strong>How it works:</strong> Fill out the form above to create your interactive chaos story. 
+            The AI will generate an engaging opening scene with choices for players to make!
+          </p>
         </div>
       </div>
     </div>
@@ -274,59 +298,59 @@ export const Game: React.FC = () => {
   const [gameMode, setGameMode] = useState<'menu' | 'create' | 'play'>('menu');
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [devvitData, setDevvitData] = useState<{ 
-    postId?: string; 
-    userId?: string; 
-    gameId?: string;
-  }>({});
+  const [message, setMessage] = useState<string>('');
 
   useEffect(() => {
     const hostname = window.location.hostname;
     setShowBanner(!hostname.endsWith('devvit.net'));
-
-    // Notify Devvit that web view is ready
-    window.parent.postMessage({ type: 'webViewReady' }, '*');
-
-    // Listen for messages from Devvit
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'devvit-message') {
-        const { message } = event.data;
-        if (message.type === 'initialData') {
-          setDevvitData(message.data);
-          // If there's already a game ID, switch to play mode
-          if (message.data.gameId) {
-            setCurrentGameId(message.data.gameId);
-            setGameMode('play');
-          }
-        } else if (message.type === 'gameCreated') {
-          setCurrentGameId(message.data.gameId);
-          setGameMode('play');
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Main game mode rendering
+  const handleFormSubmit = async (formData: any) => {
+    try {
+      const response = await fetch('/api/chaos/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setMessage(`Game created successfully! Game ID: ${result.gameId}`);
+        setCurrentGameId(result.gameId);
+        setGameMode('play');
+      } else {
+        setMessage(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating game:', error);
+      setMessage('Network error creating game');
+    }
+  };
+
+  const handleFormCancel = () => {
+    setGameMode('menu');
+    setMessage('');
+  };
+
+  // Create game form mode
   if (gameMode === 'create') {
     return (
       <div className="flex flex-col h-full items-center pt-8 pb-2 box-border">
         {showBanner && <Banner />}
-        <CreateGameInterface />
-        <div className="mt-6">
-          <button
-            onClick={() => setGameMode('menu')}
-            className="text-blue-400 hover:text-blue-300 underline"
-          >
-            ← Back to Main Menu
-          </button>
-        </div>
+        <CreateGameForm onSubmit={handleFormSubmit} onCancel={handleFormCancel} />
+        {message && (
+          <div className={`mt-4 p-4 rounded-md max-w-2xl ${
+            message.includes('Error') ? 'bg-red-800' : 'bg-green-800'
+          }`}>
+            <p className="text-white">{message}</p>
+          </div>
+        )}
       </div>
     );
   }
 
+  // Play game mode
   if (gameMode === 'play' && currentGameId) {
     return (
       <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
@@ -363,21 +387,18 @@ export const Game: React.FC = () => {
           </button>
           
           <div className="text-gray-400 text-sm mt-4">
-            <p>Stories are created using Devvit's native form system</p>
-            <p>Click the button above to access the creation interface</p>
-            {devvitData.gameId && (
-              <p className="text-green-400 mt-2">
-                ✓ A game is already associated with this post
-              </p>
-            )}
+            <p>Click the button above to immediately open the story creation form</p>
+            <p>No additional requests needed - the form displays directly</p>
           </div>
         </div>
         
-        <div className="mt-8 text-gray-500 text-xs">
-          {devvitData.postId && <div>Post ID: {devvitData.postId}</div>}
-          {devvitData.userId && <div>User ID: {devvitData.userId}</div>}
-          {devvitData.gameId && <div>Game ID: {devvitData.gameId}</div>}
-        </div>
+        {message && (
+          <div className={`mt-6 p-4 rounded-md ${
+            message.includes('Error') ? 'bg-red-800' : 'bg-green-800'
+          }`}>
+            <p className="text-white">{message}</p>
+          </div>
+        )}
       </div>
     </div>
   );
