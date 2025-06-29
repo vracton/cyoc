@@ -88,47 +88,6 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   );
 };
 
-// Create the form at the root level for use in web view
-const createChaosStoryFormForWebView = Devvit.createForm(formConfig, async (event, context) => {
-  const { ui, redis } = context;
-  const values = event.values;
-
-  if (!values.title || !values.initialPrompt || !values.chaosLevel) {
-    ui.showToast({ text: 'Please fill in all fields!' });
-    return;
-  }
-
-  try {
-    // Import the chaos game creation function directly
-    const { createChaosGame } = await import('../server/core/chaos-game');
-    
-    // Create the chaos game directly via server function
-    const result = await createChaosGame({
-      title: values.title,
-      initialPrompt: values.initialPrompt,
-      chaosLevel: parseInt(values.chaosLevel as string)
-    }, { redis, userId: context.userId });
-
-    if (result.status === 'error') {
-      throw new Error(result.message);
-    }
-
-    // Store the game ID in the post config for later retrieval
-    if (context.postId) {
-      await redis.set(`post_game:${context.postId}`, result.gameId);
-    }
-
-    ui.showToast({ text: 'Chaos story created successfully!' });
-    
-    // The web view will handle the game display automatically
-    
-  } catch (error) {
-    console.error('Error creating chaos story:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    ui.showToast({ text: `Error creating story: ${errorMessage}` });
-  }
-});
-
 // Main App Component with Web View
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, redis } = context;
@@ -145,6 +104,8 @@ const App: Devvit.BlockComponent = (context) => {
           gameId = await redis.get(`post_game:${postId}`);
         }
 
+        console.log('Sending initial data to web view:', { postId, userId, gameId });
+
         // Send initial data to web view
         webView.postMessage({
           type: 'initialData',
@@ -155,9 +116,60 @@ const App: Devvit.BlockComponent = (context) => {
           }
         });
       } else if (message.type === 'showCreateForm') {
-        // Show the pre-created form when requested from web view
+        // Create a form specifically for this web view context
+        const createFormForWebView = Devvit.createForm(formConfig, async (event, formContext) => {
+          const { ui, redis: formRedis } = formContext;
+          const values = event.values;
+
+          if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+            ui.showToast({ text: 'Please fill in all fields!' });
+            return;
+          }
+
+          try {
+            // Import the chaos game creation function directly
+            const { createChaosGame } = await import('../server/core/chaos-game');
+            
+            // Create the chaos game directly via server function
+            const result = await createChaosGame({
+              title: values.title,
+              initialPrompt: values.initialPrompt,
+              chaosLevel: parseInt(values.chaosLevel as string)
+            }, { redis: formRedis, userId: formContext.userId });
+
+            if (result.status === 'error') {
+              throw new Error(result.message);
+            }
+
+            // Store the game ID in the post config for later retrieval
+            if (postId) {
+              await formRedis.set(`post_game:${postId}`, result.gameId);
+            }
+
+            ui.showToast({ text: 'Chaos story created successfully!' });
+            
+            // Notify the web view that a game was created
+            webView.postMessage({
+              type: 'gameCreated',
+              data: { gameId: result.gameId }
+            });
+            
+          } catch (error) {
+            console.error('Error creating chaos story:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            ui.showToast({ text: `Error creating story: ${errorMessage}` });
+            
+            // Notify web view of error
+            webView.postMessage({
+              type: 'error',
+              data: { message: errorMessage }
+            });
+          }
+        });
+
+        // Show the form
         try {
-          context.ui.showForm(createChaosStoryFormForWebView);
+          context.ui.showForm(createFormForWebView);
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
@@ -208,6 +220,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       subredditName: subreddit.name,
       preview: <Preview text="Choose Your Own Chaos - Interactive Story" />,
       runAs: 'USER',
+      userGeneratedContent: { text: values.title as string }
     });
 
     // Initialize post config and link it to the game

@@ -64,12 +64,16 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
   const [currentScene, setCurrentScene] = useState<GameScene | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [makingChoice, setMakingChoice] = useState(false);
 
   useEffect(() => {
     const loadGame = async () => {
       try {
+        console.log('Loading game:', gameId);
         const response = await fetch(`/api/chaos/game/${gameId}`);
         const result = await response.json();
+        
+        console.log('Game load result:', result);
         
         if (result.status === 'success') {
           setGame(result.game);
@@ -78,20 +82,25 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
           setError(result.message || 'Failed to load game');
         }
       } catch (err) {
+        console.error('Error loading game:', err);
         setError('Network error loading game');
       } finally {
         setLoading(false);
       }
     };
 
-    loadGame();
+    if (gameId) {
+      loadGame();
+    }
   }, [gameId]);
 
   const makeChoice = async (choiceId: string) => {
-    if (!game) return;
+    if (!game || makingChoice) return;
 
-    setLoading(true);
+    setMakingChoice(true);
     try {
+      console.log('Making choice:', { gameId: game.id, choiceId });
+      
       const response = await fetch('/api/chaos/choice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,24 +108,29 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
       });
 
       const result = await response.json();
+      console.log('Choice result:', result);
       
       if (result.status === 'success') {
         setCurrentScene(result.scene);
-        // Update game state if needed
+        // Update the game object with new history if needed
+        const updatedGame = { ...game };
+        updatedGame.currentScene = result.scene;
+        setGame(updatedGame);
       } else {
         setError(result.message || 'Failed to make choice');
       }
     } catch (err) {
+      console.error('Error making choice:', err);
       setError('Network error making choice');
     } finally {
-      setLoading(false);
+      setMakingChoice(false);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">Loading game...</div>
       </div>
     );
   }
@@ -160,10 +174,11 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
               <button
                 key={choice.id}
                 onClick={() => makeChoice(choice.id)}
-                disabled={loading}
-                className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded-md transition duration-200 border border-gray-600 hover:border-blue-500"
+                disabled={makingChoice}
+                className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-md transition duration-200 border border-gray-600 hover:border-blue-500"
               >
                 <span className="font-semibold text-blue-400">{index + 1}.</span> {choice.text}
+                {makingChoice && <span className="ml-2 text-gray-400">(Processing...)</span>}
               </button>
             ))}
           </div>
@@ -178,6 +193,11 @@ export const Game: React.FC = () => {
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [message, setMessage] = useState<string>('');
+  const [initialData, setInitialData] = useState<{
+    postId: string;
+    userId?: string;
+    gameId?: string;
+  } | null>(null);
 
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -185,10 +205,25 @@ export const Game: React.FC = () => {
 
     // Listen for messages from Devvit
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'gameCreated') {
-        setCurrentGameId(event.data.data.gameId);
+      console.log('Web view received message:', event.data);
+      
+      if (event.data?.type === 'initialData') {
+        const data = event.data.data;
+        setInitialData(data);
+        
+        // If there's already a game associated with this post, load it
+        if (data.gameId) {
+          setCurrentGameId(data.gameId);
+          setGameMode('play');
+          setMessage(`Loading existing game: ${data.gameId}`);
+        } else {
+          setMessage('Ready to create a new chaos story!');
+        }
+      } else if (event.data?.type === 'gameCreated') {
+        const gameId = event.data.data.gameId;
+        setCurrentGameId(gameId);
         setGameMode('play');
-        setMessage(`Game created successfully! Game ID: ${event.data.data.gameId}`);
+        setMessage(`Game created successfully! Game ID: ${gameId}`);
       } else if (event.data?.type === 'error') {
         setMessage(`Error: ${event.data.data.message}`);
       }
@@ -197,6 +232,7 @@ export const Game: React.FC = () => {
     window.addEventListener('message', handleMessage);
     
     // Send ready message to Devvit
+    console.log('Sending webViewReady message to Devvit');
     window.parent?.postMessage({ type: 'webViewReady' }, '*');
 
     return () => {
@@ -206,6 +242,7 @@ export const Game: React.FC = () => {
 
   const handleCreateStoryClick = () => {
     // Send message to Devvit to show the form
+    console.log('Requesting form from Devvit');
     window.parent?.postMessage({ type: 'showCreateForm' }, '*');
   };
 
@@ -217,7 +254,10 @@ export const Game: React.FC = () => {
         <ChaosGamePlay gameId={currentGameId} />
         <div className="mt-6">
           <button
-            onClick={() => setGameMode('menu')}
+            onClick={() => {
+              setGameMode('menu');
+              setCurrentGameId(null);
+            }}
             className="text-blue-400 hover:text-blue-300 underline"
           >
             ← Back to Main Menu
@@ -248,6 +288,13 @@ export const Game: React.FC = () => {
           <div className="text-gray-400 text-sm mt-4">
             <p>Click the button above to open the Devvit native form</p>
             <p>The form will appear as a modal overlay from the Devvit system</p>
+            {initialData && (
+              <div className="mt-2 text-xs">
+                <p>Post ID: {initialData.postId}</p>
+                {initialData.userId && <p>User ID: {initialData.userId}</p>}
+                {initialData.gameId && <p>Game ID: {initialData.gameId}</p>}
+              </div>
+            )}
           </div>
         </div>
         
