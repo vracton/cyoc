@@ -39,6 +39,7 @@ function initializeElements() {
     choicesContainer: document.getElementById('choices-container'),
     endingScreen: document.getElementById('ending-screen')
   };
+  print(elements)
 }
 
 function setupEventListeners() {
@@ -224,7 +225,7 @@ function showGameScreen() {
 }
 
 function hideAllScreens() {
-  document.getElementById('loading-screen').style.display = 'none';
+  elements.loadingScreen.style.display = 'none';
   elements.menuScreen.style.display = 'none';
   elements.gameScreen.style.display = 'none';
 }
