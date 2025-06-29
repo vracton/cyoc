@@ -12,6 +12,112 @@ defineConfig({
   menu: { enable: false },
 });
 
+// Create the form at the root level
+const createChaosStoryForm = Devvit.createForm(
+  {
+    title: 'Create Your Chaos Story',
+    description: 'Set up your interactive story for other Redditors to play',
+    fields: [
+      {
+        name: 'title',
+        label: 'Story Title',
+        type: 'string',
+        required: true,
+        placeholder: 'Enter a catchy title for your story'
+      },
+      {
+        name: 'initialPrompt',
+        label: 'Starting Scenario',
+        type: 'paragraph',
+        required: true,
+        placeholder: 'Describe the initial situation or setting for your story...'
+      },
+      {
+        name: 'chaosLevel',
+        label: 'Chaos Level',
+        type: 'select',
+        required: true,
+        options: [
+          { label: '1 - Mild (Slightly unpredictable)', value: '1' },
+          { label: '2 - Moderate (Some surprises)', value: '2' },
+          { label: '3 - Wild (Significant twists)', value: '3' },
+          { label: '4 - Extreme (Highly unpredictable)', value: '4' },
+          { label: '5 - Maximum Chaos (Completely absurd)', value: '5' }
+        ]
+      }
+    ],
+    acceptLabel: 'Create Story',
+    cancelLabel: 'Cancel'
+  },
+  async (event, context) => {
+    const { reddit, ui } = context;
+    const values = event.values;
+
+    if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+      ui.showToast({ text: 'Please fill in all fields!' });
+      return;
+    }
+
+    let post: Post | undefined;
+    try {
+      const subreddit = await reddit.getCurrentSubreddit();
+      
+      // Create the post first
+      post = await reddit.submitPost({
+        title: values.title as string,
+        subredditName: subreddit.name,
+        preview: <Preview text="Creating your chaos story..." />,
+      });
+
+      // Initialize post config
+      await postConfigNew({
+        redis: context.redis,
+        postId: post.id,
+      });
+
+      // Create the chaos game via API call
+      const response = await fetch('/api/chaos/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: values.title,
+          initialPrompt: values.initialPrompt,
+          chaosLevel: parseInt(values.chaosLevel as string)
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create chaos game');
+      }
+
+      const result = await response.json();
+      
+      if (result.status === 'error') {
+        throw new Error(result.message);
+      }
+
+      ui.showToast({ text: 'Chaos story created successfully!' });
+      ui.navigateTo(post.url);
+    } catch (error) {
+      console.error('Error creating chaos story:', error);
+      
+      // Clean up the post if it was created
+      if (post) {
+        try {
+          await post.remove(false);
+        } catch (cleanupError) {
+          console.error('Error cleaning up post:', cleanupError);
+        }
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      ui.showToast({ text: `Error creating story: ${errorMessage}` });
+    }
+  }
+);
+
 export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
@@ -87,110 +193,10 @@ Devvit.addMenuItem({
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (event, context) => {
-    const { reddit, ui } = context;
+    const { ui } = context;
 
-    // Show form for creating chaos game
-    const form = ui.showForm(
-      {
-        title: 'Create Your Chaos Story',
-        description: 'Set up your interactive story for other Redditors to play',
-        fields: [
-          {
-            name: 'title',
-            label: 'Story Title',
-            type: 'string',
-            required: true,
-            placeholder: 'Enter a catchy title for your story'
-          },
-          {
-            name: 'initialPrompt',
-            label: 'Starting Scenario',
-            type: 'paragraph',
-            required: true,
-            placeholder: 'Describe the initial situation or setting for your story...'
-          },
-          {
-            name: 'chaosLevel',
-            label: 'Chaos Level',
-            type: 'select',
-            required: true,
-            options: [
-              { label: '1 - Mild (Slightly unpredictable)', value: '1' },
-              { label: '2 - Moderate (Some surprises)', value: '2' },
-              { label: '3 - Wild (Significant twists)', value: '3' },
-              { label: '4 - Extreme (Highly unpredictable)', value: '4' },
-              { label: '5 - Maximum Chaos (Completely absurd)', value: '5' }
-            ]
-          }
-        ],
-        acceptLabel: 'Create Story',
-        cancelLabel: 'Cancel'
-      },
-      async (values) => {
-        if (!values.title || !values.initialPrompt || !values.chaosLevel) {
-          ui.showToast({ text: 'Please fill in all fields!' });
-          return;
-        }
-
-        let post: Post | undefined;
-        try {
-          const subreddit = await reddit.getCurrentSubreddit();
-          
-          // Create the post first
-          post = await reddit.submitPost({
-            title: values.title as string,
-            subredditName: subreddit.name,
-            preview: <Preview text="Creating your chaos story..." />,
-          });
-
-          // Initialize post config
-          await postConfigNew({
-            redis: context.redis,
-            postId: post.id,
-          });
-
-          // Create the chaos game via API call
-          const response = await fetch('/api/chaos/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              title: values.title,
-              initialPrompt: values.initialPrompt,
-              chaosLevel: parseInt(values.chaosLevel as string)
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to create chaos game');
-          }
-
-          const result = await response.json();
-          
-          if (result.status === 'error') {
-            throw new Error(result.message);
-          }
-
-          ui.showToast({ text: 'Chaos story created successfully!' });
-          ui.navigateTo(post.url);
-        } catch (error) {
-          console.error('Error creating chaos story:', error);
-          
-          // Clean up the post if it was created
-          if (post) {
-            try {
-              await post.remove(false);
-            } catch (cleanupError) {
-              console.error('Error cleaning up post:', cleanupError);
-            }
-          }
-          
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          ui.showToast({ text: `Error creating story: ${errorMessage}` });
-        }
-      }
-    );
+    // Show the registered form
+    ui.showForm(createChaosStoryForm);
   },
 });
 
