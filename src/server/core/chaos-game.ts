@@ -45,9 +45,25 @@ export class ChaosGameService {
       // Save the game
       await this.redis.set(getChaosGameKey(gameId), JSON.stringify(game));
       
-      // Add to user's games list
+      // Add to user's games list using JSON array instead of Redis sets
       const userGamesKey = getGamesByUserKey(createdBy);
-      await this.redis.sadd(userGamesKey, gameId);
+      const existingGamesData = await this.redis.get(userGamesKey);
+      let userGames: string[] = [];
+      
+      if (existingGamesData) {
+        try {
+          userGames = JSON.parse(existingGamesData);
+        } catch (error) {
+          console.error('Error parsing user games data:', error);
+          userGames = [];
+        }
+      }
+      
+      // Add the new game ID if it's not already in the list
+      if (!userGames.includes(gameId)) {
+        userGames.push(gameId);
+        await this.redis.set(userGamesKey, JSON.stringify(userGames));
+      }
 
       console.log('Successfully created and saved chaos game:', gameId);
       return game;
@@ -125,7 +141,18 @@ export class ChaosGameService {
 
   async getUserGames(userId: string): Promise<string[]> {
     const userGamesKey = getGamesByUserKey(userId);
-    return await this.redis.smembers(userGamesKey);
+    const gamesData = await this.redis.get(userGamesKey);
+    
+    if (!gamesData) {
+      return [];
+    }
+    
+    try {
+      return JSON.parse(gamesData);
+    } catch (error) {
+      console.error('Error parsing user games data:', error);
+      return [];
+    }
   }
 
   async deleteGame(gameId: string, userId: string): Promise<boolean> {
@@ -137,9 +164,19 @@ export class ChaosGameService {
     // Remove from Redis
     await this.redis.del(getChaosGameKey(gameId));
     
-    // Remove from user's games list
+    // Remove from user's games list using JSON array
     const userGamesKey = getGamesByUserKey(userId);
-    await this.redis.srem(userGamesKey, gameId);
+    const existingGamesData = await this.redis.get(userGamesKey);
+    
+    if (existingGamesData) {
+      try {
+        let userGames: string[] = JSON.parse(existingGamesData);
+        userGames = userGames.filter(id => id !== gameId);
+        await this.redis.set(userGamesKey, JSON.stringify(userGames));
+      } catch (error) {
+        console.error('Error updating user games list:', error);
+      }
+    }
 
     return true;
   }
