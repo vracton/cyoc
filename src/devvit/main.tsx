@@ -10,10 +10,10 @@ Devvit.configure({
 
 // Message types for communication between Devvit and web view
 export type DevvitMessage =
-  | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string } }
-  | { type: 'gameCreated'; data: { gameId: string } }
+  | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string; game?: any } }
+  | { type: 'gameCreated'; data: { gameId: string; game: any } }
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
-  | { type: 'choiceResult'; data: { status: 'success'; scene: any } | { status: 'error'; message: string } }
+  | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
@@ -92,30 +92,45 @@ const App: Devvit.BlockComponent = (context) => {
       if (message.type === 'webViewReady') {
         // Check if there's already a game associated with this post
         let gameId = null;
+        let gameData = null;
+        
         if (postId) {
           try {
             gameId = await redis.get(`post_game:${postId}`);
             console.log('Found existing game for post:', postId, 'gameId:', gameId);
+            
+            // If we have a gameId, fetch the complete game data
+            if (gameId) {
+              const gameResult = await getChaosGame(gameId, { redis });
+              if (gameResult.status === 'success') {
+                gameData = gameResult.game;
+                console.log('Successfully loaded game data:', gameData.title);
+              } else {
+                console.error('Failed to load game data:', gameResult.message);
+              }
+            }
           } catch (error) {
             console.error('Error checking for existing game:', error);
           }
         }
 
-        console.log('Sending initial data to web view:', { postId, userId, gameId });
+        console.log('Sending initial data to web view:', { postId, userId, gameId, hasGameData: !!gameData });
 
-        // Send initial data to web view
+        // Send initial data to web view, including complete game data if available
         webView.postMessage({
           type: 'initialData',
           data: {
             postId: postId || '',
             userId: userId,
-            gameId: gameId
+            gameId: gameId,
+            game: gameData // Send the complete game data
           }
         });
       } else if (message.type === 'getGame') {
-        // Handle game data request
+        // Handle game data request - this should now be redundant since we send it in initialData
         try {
           const result = await getChaosGame(message.data.gameId, { redis });
+          console.log('Sending game data to webview:', result);
           webView.postMessage({
             type: 'gameData',
             data: result
@@ -130,7 +145,10 @@ const App: Devvit.BlockComponent = (context) => {
       } else if (message.type === 'makeChoice') {
         // Handle choice making
         try {
+          console.log('Processing choice:', message.data);
           const result = await makeChaosChoice(message.data, { redis, userId });
+          console.log('Choice result:', result);
+          
           webView.postMessage({
             type: 'choiceResult',
             data: result
@@ -175,12 +193,22 @@ const App: Devvit.BlockComponent = (context) => {
               console.log('Stored game ID in post config:', postId, result.gameId);
             }
 
+            // Get the complete game data to send to webview
+            const gameResult = await getChaosGame(result.gameId, { redis: formRedis });
+            let gameData = null;
+            if (gameResult.status === 'success') {
+              gameData = gameResult.game;
+            }
+
             ui.showToast({ text: 'Chaos story created successfully!' });
             
-            // Notify the web view that a game was created
+            // Notify the web view that a game was created with complete game data
             webView.postMessage({
               type: 'gameCreated',
-              data: { gameId: result.gameId }
+              data: { 
+                gameId: result.gameId,
+                game: gameData
+              }
             });
             
           } catch (error) {
