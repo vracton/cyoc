@@ -5,7 +5,7 @@ import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
 
 defineConfig({
-  name: '[Bolt] Choose Your Own Chaos',
+  name: 'Choose Your Own Chaos',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
