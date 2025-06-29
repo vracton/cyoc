@@ -1,11 +1,10 @@
-import { Devvit, Post, useWebView } from '@devvit/public-api';
+import { Devvit, useWebView } from '@devvit/public-api';
 import { createChaosGame, getChaosGame, makeChaosChoice } from './server/chaos-game.js';
 
-// Configure Devvit to enable HTTP requests
+// Configure Devvit to enable required features
 Devvit.configure({ 
   http: true,
   redis: true,
-  userActions: true,
   redditAPI: true,
 });
 
@@ -23,7 +22,7 @@ export type WebViewMessage =
   | { type: 'getGame'; data: { gameId: string } }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
 
-// Extract form configuration for reuse
+// Form configuration for creating chaos stories
 const formConfig = {
   title: 'Create Your Chaos Story',
   description: 'Set up your interactive story for other Redditors to play',
@@ -60,14 +59,21 @@ const formConfig = {
   cancelLabel: 'Cancel'
 };
 
+// Preview component for posts in the feed
 export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
-  const displayText = props.text || 'Loading...';
+  const displayText = props.text || 'Choose Your Own Chaos - Interactive Story';
   
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
-      <vstack width={'100%'} height={'100%'} alignment="center middle">
-        <text maxWidth={`80%`} size="large" weight="bold" alignment="center middle" wrap>
+      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
+        <text size="xxlarge" weight="bold" alignment="center middle" wrap>
+          🎲 Choose Your Own Chaos
+        </text>
+        <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
           {displayText}
+        </text>
+        <text size="small" color="neutral-content-weak" alignment="center middle" wrap>
+          Click to play interactive story
         </text>
       </vstack>
     </zstack>
@@ -78,7 +84,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, redis } = context;
 
-  const webView = useWebView<WebViewMessage, DevvitMessage>({
+  const { mount } = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
     onMessage: async (message, webView) => {
       console.log('Received message from web view:', message);
@@ -207,7 +213,19 @@ const App: Devvit.BlockComponent = (context) => {
     },
   });
 
-  return webView;
+  return (
+    <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
+      <text size="xxlarge" weight="bold" alignment="center middle">
+        🎲 Choose Your Own Chaos
+      </text>
+      <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
+        Interactive storytelling where your choices matter
+      </text>
+      <button appearance="primary" onPress={mount}>
+        Launch Game
+      </button>
+    </vstack>
+  );
 };
 
 // Create the form at the root level for menu actions
@@ -220,7 +238,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     return;
   }
 
-  let post: Post | undefined;
+  let post: any;
   try {
     console.log('Creating game via menu action with values:', values);
     
@@ -243,8 +261,6 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       title: values.title as string,
       subredditName: subreddit.name,
       preview: <Preview text={`${values.title as string} - Click to play!`} />,
-      runAs: 'USER',
-      userGeneratedContent: { text: values.title as string }
     });
 
     // Store the game ID in the post config
@@ -278,8 +294,6 @@ Devvit.addMenuItem({
   forUserType: 'moderator',
   onPress: async (event, context) => {
     const { ui } = context;
-
-    // Show the registered form
     ui.showForm(createChaosStoryForm);
   },
 });
@@ -292,13 +306,13 @@ Devvit.addMenuItem({
   onPress: async (event, context) => {
     const { reddit, ui } = context;
 
-    let post: Post | undefined;
+    let post: any;
     try {
       const subreddit = await reddit.getCurrentSubreddit();
       post = await reddit.submitPost({
         title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
-        preview: <Preview text="Choose Your Own Chaos - Interactive Stories" />,
+        preview: <Preview text="Ready to create your chaos story!" />,
       });
       
       ui.showToast({ text: 'Empty chaos game post created!' });
@@ -316,11 +330,11 @@ Devvit.addMenuItem({
   },
 });
 
-// Add custom post type - this is what actually renders the interactive content
+// Add custom post type - this renders the interactive content
 Devvit.addCustomPostType({
   name: 'Chaos Game',
   height: 'tall',
-  render: App, // This renders the interactive web view, not the preview
+  render: App,
 });
 
 export default Devvit;
