@@ -37,7 +37,7 @@ const ensureServicesInitialized = async () => {
 
   try {
     const { getSecret, redis } = getContext();
-    const geminiApiKey = await getSecret('GEMINI_API_KEY');
+    const geminiApiKey = "AIzaSyCEkDS-IGaotnNq2koQMipzEMr5XIwbASg";//await getSecret('GEMINI_API_KEY');
     
     if (!geminiApiKey) {
       console.error('GEMINI_API_KEY secret not found. Please set it up in your Devvit app settings.');
