@@ -101,7 +101,12 @@ const App: Devvit.BlockComponent = (context) => {
         // Check if there's already a game associated with this post
         let gameId = null;
         if (postId) {
-          gameId = await redis.get(`post_game:${postId}`);
+          try {
+            gameId = await redis.get(`post_game:${postId}`);
+            console.log('Found existing game for post:', postId, 'gameId:', gameId);
+          } catch (error) {
+            console.error('Error checking for existing game:', error);
+          }
         }
 
         console.log('Sending initial data to web view:', { postId, userId, gameId });
@@ -127,15 +132,23 @@ const App: Devvit.BlockComponent = (context) => {
           }
 
           try {
-            // Import the chaos game creation function directly
-            const { createChaosGame } = await import('../server/core/chaos-game');
+            console.log('Creating game with values:', values);
             
-            // Create the chaos game directly via server function
-            const result = await createChaosGame({
-              title: values.title,
-              initialPrompt: values.initialPrompt,
-              chaosLevel: parseInt(values.chaosLevel as string)
-            }, { redis: formRedis, userId: formContext.userId });
+            // Create the chaos game via API call to our server
+            const response = await fetch('/api/chaos/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                title: values.title,
+                initialPrompt: values.initialPrompt,
+                chaosLevel: parseInt(values.chaosLevel as string)
+              }),
+            });
+
+            const result = await response.json();
+            console.log('Game creation result:', result);
 
             if (result.status === 'error') {
               throw new Error(result.message);
@@ -144,6 +157,7 @@ const App: Devvit.BlockComponent = (context) => {
             // Store the game ID in the post config for later retrieval
             if (postId) {
               await formRedis.set(`post_game:${postId}`, result.gameId);
+              console.log('Stored game ID in post config:', postId, result.gameId);
             }
 
             ui.showToast({ text: 'Chaos story created successfully!' });
@@ -199,15 +213,23 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
 
   let post: Post | undefined;
   try {
-    // Import the chaos game creation function directly
-    const { createChaosGame } = await import('../server/core/chaos-game');
+    console.log('Creating game via menu action with values:', values);
     
-    // Create the chaos game first
-    const result = await createChaosGame({
-      title: values.title,
-      initialPrompt: values.initialPrompt,
-      chaosLevel: parseInt(values.chaosLevel as string)
-    }, { redis, userId: context.userId });
+    // Create the chaos game via API call to our server
+    const response = await fetch('/api/chaos/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: values.title,
+        initialPrompt: values.initialPrompt,
+        chaosLevel: parseInt(values.chaosLevel as string)
+      }),
+    });
+
+    const result = await response.json();
+    console.log('Menu action game creation result:', result);
 
     if (result.status === 'error') {
       throw new Error(result.message);
@@ -231,12 +253,13 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
 
     // Store the game ID in the post config
     await redis.set(`post_game:${post.id}`, result.gameId);
+    console.log('Menu action: Stored game ID in post config:', post.id, result.gameId);
 
     ui.showToast({ text: 'Chaos story and post created successfully!' });
     ui.navigateTo(post.url);
     
   } catch (error) {
-    console.error('Error creating chaos story:', error);
+    console.error('Error creating chaos story via menu:', error);
     
     // Clean up the post if it was created
     if (post) {

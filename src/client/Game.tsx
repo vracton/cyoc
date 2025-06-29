@@ -198,6 +198,7 @@ export const Game: React.FC = () => {
     userId?: string;
     gameId?: string;
   } | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -210,17 +211,21 @@ export const Game: React.FC = () => {
       if (event.data?.type === 'initialData') {
         const data = event.data.data;
         setInitialData(data);
+        setIsReady(true);
         
         // If there's already a game associated with this post, load it
         if (data.gameId) {
+          console.log('Found existing game, switching to play mode:', data.gameId);
           setCurrentGameId(data.gameId);
           setGameMode('play');
           setMessage(`Loading existing game: ${data.gameId}`);
         } else {
+          console.log('No existing game found, showing menu');
           setMessage('Ready to create a new chaos story!');
         }
       } else if (event.data?.type === 'gameCreated') {
         const gameId = event.data.data.gameId;
+        console.log('Game created, switching to play mode:', gameId);
         setCurrentGameId(gameId);
         setGameMode('play');
         setMessage(`Game created successfully! Game ID: ${gameId}`);
@@ -245,6 +250,24 @@ export const Game: React.FC = () => {
     console.log('Requesting form from Devvit');
     window.parent?.postMessage({ type: 'showCreateForm' }, '*');
   };
+
+  // Show loading state until we receive initial data
+  if (!isReady) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center pt-2 pb-2 box-border">
+        {showBanner && <Banner />}
+        <div className="max-w-2xl mx-auto p-6 text-center">
+          <h1 className="text-5xl font-bold text-white mb-4">Choose Your Own Chaos</h1>
+          <p className="text-xl text-gray-300 mb-8">
+            Initializing interactive story system...
+          </p>
+          <div className="text-gray-400">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Play game mode
   if (gameMode === 'play' && currentGameId) {
