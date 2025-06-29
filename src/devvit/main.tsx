@@ -109,7 +109,7 @@ const App: Devvit.BlockComponent = (context) => {
           data: {
             postId: postId || '',
             userId: userId,
-            gameId: gameId || undefined
+            gameId: gameId
           }
         });
       } else if (message.type === 'getGame') {
