@@ -56,11 +56,6 @@ export interface MakeChoiceRequest {
   choiceId: string;
 }
 
-export type InitResponse = Response<{
-  postId: string;
-  gameState: GameState;
-}>;
-
 export type CreateGameResponse = Response<{
   gameId: string;
   postUrl: string;
@@ -77,10 +72,4 @@ export type MakeChoiceResponse = Response<{
 
 export type GetSceneResponse = Response<{
   scene: GameScene;
-}>;
-
-export type CheckResponse = Response<{
-  exists: boolean;
-  solved: boolean;
-  correct: [LetterState, LetterState, LetterState, LetterState, LetterState];
 }>;
