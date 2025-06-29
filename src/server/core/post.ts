@@ -1,12 +1,14 @@
 import { Context } from '@devvit/public-api';
-import { getWordOfTheDay } from './words';
 import { RedisClient } from '@devvit/redis';
+import { GameState } from '../../shared/types/game';
 
 type PostConfig = {
-  wordOfTheDay: string;
+  gameId: string;
+  createdAt: number;
 };
 
 const getPostConfigKey = (postId: string) => `post_config:${postId}` as const;
+const getGameStateKey = (postId: string, userId: string) => `game_state:${postId}:${userId}` as const;
 
 export const postConfigMaybeGet = async ({
   redis,
@@ -50,11 +52,47 @@ export const postConfigNew = async ({
   redis: Context['redis'] | RedisClient;
   postId: string;
 }): Promise<void> => {
-  const wordOfTheDay = getWordOfTheDay();
+  const gameId = `chaos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  await redis.set(getPostConfigKey(postId), JSON.stringify({ 
+    gameId,
+    createdAt: Date.now()
+  } satisfies PostConfig));
+};
 
-  if (!wordOfTheDay) {
-    throw new Error('No word of the day found');
+export const getGameState = async ({
+  redis,
+  postId,
+  userId,
+}: {
+  redis: Context['redis'] | RedisClient;
+  postId: string;
+  userId: string;
+}): Promise<GameState> => {
+  const stateData = await redis.get(getGameStateKey(postId, userId));
+  
+  if (stateData) {
+    return JSON.parse(stateData);
   }
+  
+  // Return initial game state
+  return {
+    currentSceneId: 'start',
+    visitedScenes: ['start'],
+    playerChoices: []
+  };
+};
 
-  await redis.set(getPostConfigKey(postId), JSON.stringify({ wordOfTheDay } satisfies PostConfig));
+export const saveGameState = async ({
+  redis,
+  postId,
+  userId,
+  gameState,
+}: {
+  redis: Context['redis'] | RedisClient;
+  postId: string;
+  userId: string;
+  gameState: GameState;
+}): Promise<void> => {
+  await redis.set(getGameStateKey(postId, userId), JSON.stringify(gameState));
 };
