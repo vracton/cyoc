@@ -1,22 +1,11 @@
 import { Devvit, Post, useWebView } from '@devvit/public-api';
+import { createChaosGame, getChaosGame, makeChaosChoice } from './server/chaos-game.js';
 
 // Configure Devvit to enable HTTP requests
 Devvit.configure({ 
   http: true,
   redis: true,
   userActions: true,
-});
-
-// Side effect import to bundle the server. The /index is required for server splitting.
-import '../server/index';
-import { defineConfig } from '@devvit/server';
-import { postConfigNew } from '../server/core/post';
-
-defineConfig({
-  name: '[Bolt] Choose Your Own Chaos',
-  entry: 'index.html',
-  height: 'tall',
-  menu: { enable: false },
 });
 
 // Message types for communication between Devvit and web view
@@ -134,20 +123,13 @@ const App: Devvit.BlockComponent = (context) => {
           try {
             console.log('Creating game with values:', values);
             
-            // Create the chaos game via API call to our server
-            const response = await fetch('/api/chaos/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                title: values.title,
-                initialPrompt: values.initialPrompt,
-                chaosLevel: parseInt(values.chaosLevel as string)
-              }),
-            });
+            // Create the chaos game using server-side function
+            const result = await createChaosGame({
+              title: values.title as string,
+              initialPrompt: values.initialPrompt as string,
+              chaosLevel: parseInt(values.chaosLevel as string)
+            }, { redis: formRedis, userId });
 
-            const result = await response.json();
             console.log('Game creation result:', result);
 
             if (result.status === 'error') {
@@ -203,7 +185,7 @@ const App: Devvit.BlockComponent = (context) => {
 
 // Create the form at the root level for menu actions
 const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context) => {
-  const { ui, redis, reddit } = context;
+  const { ui, redis, reddit, userId } = context;
   const values = event.values;
 
   if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -215,20 +197,13 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
   try {
     console.log('Creating game via menu action with values:', values);
     
-    // Create the chaos game via API call to our server
-    const response = await fetch('/api/chaos/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: values.title,
-        initialPrompt: values.initialPrompt,
-        chaosLevel: parseInt(values.chaosLevel as string)
-      }),
-    });
+    // Create the chaos game using server-side function
+    const result = await createChaosGame({
+      title: values.title as string,
+      initialPrompt: values.initialPrompt as string,
+      chaosLevel: parseInt(values.chaosLevel as string)
+    }, { redis, userId });
 
-    const result = await response.json();
     console.log('Menu action game creation result:', result);
 
     if (result.status === 'error') {
@@ -243,12 +218,6 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       preview: <Preview text="Choose Your Own Chaos - Interactive Story" />,
       runAs: 'USER',
       userGeneratedContent: { text: values.title as string }
-    });
-
-    // Initialize post config and link it to the game
-    await postConfigNew({
-      redis: context.redis,
-      postId: post.id,
     });
 
     // Store the game ID in the post config
@@ -303,11 +272,6 @@ Devvit.addMenuItem({
         title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
         preview: <Preview text="Choose Your Own Chaos - Interactive Stories" />,
-      });
-      
-      await postConfigNew({
-        redis: context.redis,
-        postId: post.id,
       });
       
       ui.showToast({ text: 'Empty chaos game post created!' });

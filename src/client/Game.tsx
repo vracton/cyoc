@@ -70,21 +70,44 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
     const loadGame = async () => {
       try {
         console.log('Loading game:', gameId);
-        const response = await fetch(`/api/chaos/game/${gameId}`);
-        const result = await response.json();
         
-        console.log('Game load result:', result);
+        // Send message to Devvit to get game data
+        window.parent?.postMessage({ 
+          type: 'getGame', 
+          data: { gameId } 
+        }, '*');
         
-        if (result.status === 'success') {
-          setGame(result.game);
-          setCurrentScene(result.game.currentScene);
-        } else {
-          setError(result.message || 'Failed to load game');
-        }
+        // Listen for the response
+        const handleGameData = (event: MessageEvent) => {
+          if (event.data?.type === 'gameData') {
+            const result = event.data.data;
+            console.log('Game load result:', result);
+            
+            if (result.status === 'success') {
+              setGame(result.game);
+              setCurrentScene(result.game.currentScene);
+            } else {
+              setError(result.message || 'Failed to load game');
+            }
+            setLoading(false);
+            window.removeEventListener('message', handleGameData);
+          }
+        };
+        
+        window.addEventListener('message', handleGameData);
+        
+        // Set a timeout in case we don't get a response
+        setTimeout(() => {
+          if (loading) {
+            setError('Timeout loading game');
+            setLoading(false);
+            window.removeEventListener('message', handleGameData);
+          }
+        }, 10000);
+        
       } catch (err) {
         console.error('Error loading game:', err);
         setError('Network error loading game');
-      } finally {
         setLoading(false);
       }
     };
@@ -92,7 +115,7 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
     if (gameId) {
       loadGame();
     }
-  }, [gameId]);
+  }, [gameId, loading]);
 
   const makeChoice = async (choiceId: string) => {
     if (!game || makingChoice) return;
@@ -101,28 +124,46 @@ const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
     try {
       console.log('Making choice:', { gameId: game.id, choiceId });
       
-      const response = await fetch('/api/chaos/choice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: game.id, choiceId })
-      });
-
-      const result = await response.json();
-      console.log('Choice result:', result);
+      // Send message to Devvit to make choice
+      window.parent?.postMessage({ 
+        type: 'makeChoice', 
+        data: { gameId: game.id, choiceId } 
+      }, '*');
       
-      if (result.status === 'success') {
-        setCurrentScene(result.scene);
-        // Update the game object with new history if needed
-        const updatedGame = { ...game };
-        updatedGame.currentScene = result.scene;
-        setGame(updatedGame);
-      } else {
-        setError(result.message || 'Failed to make choice');
-      }
+      // Listen for the response
+      const handleChoiceResult = (event: MessageEvent) => {
+        if (event.data?.type === 'choiceResult') {
+          const result = event.data.data;
+          console.log('Choice result:', result);
+          
+          if (result.status === 'success') {
+            setCurrentScene(result.scene);
+            // Update the game object with new history if needed
+            const updatedGame = { ...game };
+            updatedGame.currentScene = result.scene;
+            setGame(updatedGame);
+          } else {
+            setError(result.message || 'Failed to make choice');
+          }
+          setMakingChoice(false);
+          window.removeEventListener('message', handleChoiceResult);
+        }
+      };
+      
+      window.addEventListener('message', handleChoiceResult);
+      
+      // Set a timeout in case we don't get a response
+      setTimeout(() => {
+        if (makingChoice) {
+          setError('Timeout making choice');
+          setMakingChoice(false);
+          window.removeEventListener('message', handleChoiceResult);
+        }
+      }, 10000);
+      
     } catch (err) {
       console.error('Error making choice:', err);
       setError('Network error making choice');
-    } finally {
       setMakingChoice(false);
     }
   };
