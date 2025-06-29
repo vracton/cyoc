@@ -23,7 +23,7 @@ export type WebViewMessage =
   | { type: 'showCreateForm' }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
 
-// Create the form at the root level
+// Create the form at the root level with your provided configuration
 const createChaosStoryForm = Devvit.createForm(
   {
     title: 'Create Your Chaos Story',
@@ -61,7 +61,7 @@ const createChaosStoryForm = Devvit.createForm(
     cancelLabel: 'Cancel'
   },
   async (event, context) => {
-    const { ui } = context;
+    const { ui, redis, postId } = context;
     const values = event.values;
 
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -93,7 +93,15 @@ const createChaosStoryForm = Devvit.createForm(
         throw new Error(result.message);
       }
 
+      // Store the game ID in the post config for later retrieval
+      if (postId) {
+        await redis.set(`post_game:${postId}`, result.gameId);
+      }
+
       ui.showToast({ text: 'Chaos story created successfully!' });
+      
+      // Send message to web view if it's listening
+      // Note: This won't work directly, but the web view can poll for updates
       
     } catch (error) {
       console.error('Error creating chaos story:', error);
@@ -126,7 +134,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
 
 // Main App Component with Web View
 const App: Devvit.BlockComponent = (context) => {
-  const { postId, userId, ui } = context;
+  const { postId, userId, ui, redis } = context;
 
   const webView = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
@@ -134,18 +142,24 @@ const App: Devvit.BlockComponent = (context) => {
       console.log('Received message from web view:', message);
 
       if (message.type === 'webViewReady') {
+        // Check if there's already a game associated with this post
+        let gameId = null;
+        if (postId) {
+          gameId = await redis.get(`post_game:${postId}`);
+        }
+
         // Send initial data to web view
         webView.postMessage({
           type: 'initialData',
           data: {
             postId: postId || '',
-            userId: userId
+            userId: userId,
+            gameId: gameId || undefined
           }
         });
       } else if (message.type === 'showCreateForm') {
         // Show the Devvit form when requested from web view
         try {
-          // Show the form using the UI context
           ui.showForm(createChaosStoryForm);
         } catch (error) {
           console.error('Error showing form:', error);

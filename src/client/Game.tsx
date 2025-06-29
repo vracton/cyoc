@@ -85,12 +85,18 @@ const CreateGameInterface: React.FC = () => {
 
   const requestCreateForm = () => {
     setFormRequested(true);
-    setMessage('Requesting form from Devvit...');
+    setMessage('Opening Devvit form...');
     
     // Send message to Devvit to show the create form
     window.parent.postMessage({
       type: 'showCreateForm'
     }, '*');
+
+    // Reset the loading state after a delay since we can't get direct feedback
+    setTimeout(() => {
+      setFormRequested(false);
+      setMessage('Form should have opened. Check for the Devvit modal overlay.');
+    }, 2000);
   };
 
   return (
@@ -123,17 +129,25 @@ const CreateGameInterface: React.FC = () => {
         )}
         
         <div className="text-sm text-gray-400 mt-6">
-          <p className="font-semibold mb-2">The form will include:</p>
+          <p className="font-semibold mb-2">The form includes:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Story Title</li>
-            <li>Starting Scenario (description)</li>
-            <li>Chaos Level (1-5 scale)</li>
+            <li><strong>Story Title:</strong> A catchy title for your story</li>
+            <li><strong>Starting Scenario:</strong> Describe the initial situation</li>
+            <li><strong>Chaos Level:</strong> Choose from 1-5 scale:
+              <ul className="list-disc list-inside ml-4 mt-1 text-xs">
+                <li>1 - Mild (Slightly unpredictable)</li>
+                <li>2 - Moderate (Some surprises)</li>
+                <li>3 - Wild (Significant twists)</li>
+                <li>4 - Extreme (Highly unpredictable)</li>
+                <li>5 - Maximum Chaos (Completely absurd)</li>
+              </ul>
+            </li>
           </ul>
           
           <div className="mt-4 p-3 bg-blue-900 rounded-md">
             <p className="text-blue-200 text-xs">
-              <strong>Note:</strong> The form will open as a Devvit modal overlay. 
-              Fill it out and submit to create your chaos story!
+              <strong>How it works:</strong> The form will open as a Devvit modal overlay. 
+              Fill it out and click "Create Story" to generate your interactive chaos story using AI!
             </p>
           </div>
         </div>
@@ -260,7 +274,11 @@ export const Game: React.FC = () => {
   const [gameMode, setGameMode] = useState<'menu' | 'create' | 'play'>('menu');
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [devvitData, setDevvitData] = useState<{ postId?: string; userId?: string }>({});
+  const [devvitData, setDevvitData] = useState<{ 
+    postId?: string; 
+    userId?: string; 
+    gameId?: string;
+  }>({});
 
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -275,6 +293,11 @@ export const Game: React.FC = () => {
         const { message } = event.data;
         if (message.type === 'initialData') {
           setDevvitData(message.data);
+          // If there's already a game ID, switch to play mode
+          if (message.data.gameId) {
+            setCurrentGameId(message.data.gameId);
+            setGameMode('play');
+          }
         } else if (message.type === 'gameCreated') {
           setCurrentGameId(message.data.gameId);
           setGameMode('play');
@@ -342,12 +365,18 @@ export const Game: React.FC = () => {
           <div className="text-gray-400 text-sm mt-4">
             <p>Stories are created using Devvit's native form system</p>
             <p>Click the button above to access the creation interface</p>
+            {devvitData.gameId && (
+              <p className="text-green-400 mt-2">
+                ✓ A game is already associated with this post
+              </p>
+            )}
           </div>
         </div>
         
         <div className="mt-8 text-gray-500 text-xs">
           {devvitData.postId && <div>Post ID: {devvitData.postId}</div>}
           {devvitData.userId && <div>User ID: {devvitData.userId}</div>}
+          {devvitData.gameId && <div>Game ID: {devvitData.gameId}</div>}
         </div>
       </div>
     </div>
