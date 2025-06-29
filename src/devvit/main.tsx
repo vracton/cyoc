@@ -202,7 +202,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     post = await reddit.submitPost({
       title: values.title as string,
       subredditName: subreddit.name,
-      preview: <App />,
+      preview: <Preview text="Choose Your Own Chaos - Interactive Story" />,
     });
 
     // Initialize post config and link it to the game
@@ -261,7 +261,7 @@ Devvit.addMenuItem({
       post = await reddit.submitPost({
         title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
-        preview: <App />,
+        preview: <Preview text="Choose Your Own Chaos - Interactive Stories" />,
       });
       
       await postConfigNew({
