@@ -57,12 +57,14 @@ const formConfig = {
   cancelLabel: 'Cancel'
 };
 
-export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
+export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
+  const displayText = props.text || 'Loading...';
+  
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
         <text maxWidth={`80%`} size="large" weight="bold" alignment="center middle" wrap>
-          {text}
+          {displayText}
         </text>
       </vstack>
     </zstack>
