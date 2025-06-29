@@ -1,5 +1,5 @@
 import { Devvit, useWebView } from '@devvit/public-api';
-import { createChaosGame, getChaosGame, makeChaosChoice } from './server/chaos-game.js';
+import { createChaosGame, getChaosGame, makeChaosChoice } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
 Devvit.configure({ 
