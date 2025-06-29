@@ -6,6 +6,7 @@ Devvit.configure({
   http: true,
   redis: true,
   redditAPI: true,
+  userActions: true
 });
 
 // Message types for communication between Devvit and web view
@@ -288,7 +289,9 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     post = await reddit.submitPost({
       title: values.title as string,
       subredditName: subreddit.name,
-      preview: <Preview text={`${values.title as string} - Click to play!`} />,
+      preview: <Preview text={`${values.title as string}`} />,
+      runAs: 'USER',
+      userGeneratedContent: { text: values.title as string }
     });
 
     // Store the game ID in the post config
