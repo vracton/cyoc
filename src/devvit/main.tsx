@@ -6,17 +6,10 @@ import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
 
 defineConfig({
-  name: '[Bolt] Word Guesser',
+  name: '[Bolt] Choose Your Own Chaos',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
-  // TODO: Cannot use without ability to pass in more metadata
-  // menu: {
-  //   enable: true,
-  //   label: 'New Word Guesser Post',
-  //   postTitle: 'Word Guesser',
-  //   preview: <Preview />,
-  // },
 });
 
 export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
@@ -40,29 +33,190 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   );
 };
 
-// TODO: Remove this when defineConfig allows webhooks before post creation
+// Chaos Game Creation Form
+const CreateChaosGameForm: Devvit.BlockComponent = () => {
+  return (
+    <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+      <text size="xxlarge" weight="bold" color="neutral-content-strong">
+        Choose Your Own Chaos
+      </text>
+      <text size="medium" color="neutral-content" alignment="center">
+        Create an interactive story where other Redditors make choices that shape the narrative!
+      </text>
+      
+      <vstack gap="small" width={'100%'} maxWidth="400px">
+        <button 
+          appearance="primary" 
+          size="large"
+          onPress={() => {
+            // This will be handled by the menu action
+          }}
+        >
+          Create New Chaos Story
+        </button>
+        
+        <text size="small" color="neutral-content-weak" alignment="center">
+          Click to start creating your interactive story
+        </text>
+      </vstack>
+    </vstack>
+  );
+};
+
+// Game Display Component
+const ChaosGameDisplay: Devvit.BlockComponent<{ gameId?: string }> = ({ gameId }) => {
+  if (!gameId) {
+    return <CreateChaosGameForm />;
+  }
+
+  return (
+    <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+      <text size="large" weight="bold" color="neutral-content-strong">
+        Chaos Game: {gameId}
+      </text>
+      <text size="medium" color="neutral-content" alignment="center">
+        Loading your interactive story...
+      </text>
+    </vstack>
+  );
+};
+
+// Menu action for creating chaos games
 Devvit.addMenuItem({
-  // Please update as you work on your idea!
-  label: '[Bolt Word Guesser]: New Post',
+  label: '[Bolt Chaos]: Create Story',
   location: 'subreddit',
   forUserType: 'moderator',
-  onPress: async (_event, context) => {
+  onPress: async (event, context) => {
+    const { reddit, ui } = context;
+
+    // Show form for creating chaos game
+    const form = ui.showForm(
+      {
+        title: 'Create Your Chaos Story',
+        description: 'Set up your interactive story for other Redditors to play',
+        fields: [
+          {
+            name: 'title',
+            label: 'Story Title',
+            type: 'string',
+            required: true,
+            placeholder: 'Enter a catchy title for your story'
+          },
+          {
+            name: 'initialPrompt',
+            label: 'Starting Scenario',
+            type: 'paragraph',
+            required: true,
+            placeholder: 'Describe the initial situation or setting for your story...'
+          },
+          {
+            name: 'chaosLevel',
+            label: 'Chaos Level',
+            type: 'select',
+            required: true,
+            options: [
+              { label: '1 - Mild (Slightly unpredictable)', value: '1' },
+              { label: '2 - Moderate (Some surprises)', value: '2' },
+              { label: '3 - Wild (Significant twists)', value: '3' },
+              { label: '4 - Extreme (Highly unpredictable)', value: '4' },
+              { label: '5 - Maximum Chaos (Completely absurd)', value: '5' }
+            ]
+          }
+        ],
+        acceptLabel: 'Create Story',
+        cancelLabel: 'Cancel'
+      },
+      async (values) => {
+        if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+          ui.showToast({ text: 'Please fill in all fields!' });
+          return;
+        }
+
+        let post: Post | undefined;
+        try {
+          const subreddit = await reddit.getCurrentSubreddit();
+          
+          // Create the post first
+          post = await reddit.submitPost({
+            title: values.title as string,
+            subredditName: subreddit.name,
+            preview: <Preview text="Creating your chaos story..." />,
+          });
+
+          // Initialize post config
+          await postConfigNew({
+            redis: context.redis,
+            postId: post.id,
+          });
+
+          // Create the chaos game via API call
+          const response = await fetch('/api/chaos/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: values.title,
+              initialPrompt: values.initialPrompt,
+              chaosLevel: parseInt(values.chaosLevel as string)
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create chaos game');
+          }
+
+          const result = await response.json();
+          
+          if (result.status === 'error') {
+            throw new Error(result.message);
+          }
+
+          ui.showToast({ text: 'Chaos story created successfully!' });
+          ui.navigateTo(post.url);
+        } catch (error) {
+          console.error('Error creating chaos story:', error);
+          
+          // Clean up the post if it was created
+          if (post) {
+            try {
+              await post.remove(false);
+            } catch (cleanupError) {
+              console.error('Error cleaning up post:', cleanupError);
+            }
+          }
+          
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          ui.showToast({ text: `Error creating story: ${errorMessage}` });
+        }
+      }
+    );
+  },
+});
+
+// Menu action for playing existing chaos games
+Devvit.addMenuItem({
+  label: '[Bolt Chaos]: New Story Post',
+  location: 'subreddit',
+  forUserType: 'moderator',
+  onPress: async (event, context) => {
     const { reddit, ui } = context;
 
     let post: Post | undefined;
     try {
       const subreddit = await reddit.getCurrentSubreddit();
       post = await reddit.submitPost({
-        // Title of the post. You'll want to update!
-        title: 'Word Guesser',
+        title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
-        preview: <Preview />,
+        preview: <Preview text="Loading chaos stories..." />,
       });
+      
       await postConfigNew({
         redis: context.redis,
         postId: post.id,
       });
-      ui.showToast({ text: 'Created post!' });
+      
+      ui.showToast({ text: 'Chaos game post created!' });
       ui.navigateTo(post.url);
     } catch (error) {
       if (post) {
