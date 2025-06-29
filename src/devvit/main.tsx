@@ -14,7 +14,7 @@ defineConfig({
 
 // Message types for communication between Devvit and web view
 export type DevvitMessage =
-  | { type: 'initialData'; data: { postId: string; userId?: string } }
+  | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string } }
   | { type: 'gameCreated'; data: { gameId: string } }
   | { type: 'error'; data: { message: string } };
 
@@ -61,7 +61,7 @@ const formConfig = {
 };
 
 const formHandler = async (event: any, context: any) => {
-  const { ui, redis, postId } = context;
+  const { ui, redis, postId, userId } = context;
   const values = event.values;
 
   if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -78,7 +78,7 @@ const formHandler = async (event: any, context: any) => {
       title: values.title,
       initialPrompt: values.initialPrompt,
       chaosLevel: parseInt(values.chaosLevel as string)
-    }, context);
+    }, { redis, userId });
 
     if (result.status === 'error') {
       throw new Error(result.message);
@@ -90,9 +90,6 @@ const formHandler = async (event: any, context: any) => {
     }
 
     ui.showToast({ text: 'Chaos story created successfully!' });
-    
-    // Send message to web view if it's listening
-    // Note: This won't work directly, but the web view can poll for updates
     
   } catch (error) {
     console.error('Error creating chaos story:', error);

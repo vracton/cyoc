@@ -121,3 +121,36 @@ export class ChaosGameService {
     return true;
   }
 }
+
+// Export a standalone function for direct use in Devvit context
+export async function createChaosGame(
+  data: { title: string; initialPrompt: string; chaosLevel: number },
+  context: { redis: RedisClient; userId?: string }
+): Promise<{ status: 'success'; gameId: string } | { status: 'error'; message: string }> {
+  try {
+    if (!context.userId) {
+      return { status: 'error', message: 'User ID required' };
+    }
+
+    // Initialize services
+    const geminiApiKey = "AIzaSyCEkDS-IGaotnNq2koQMipzEMr5XIwbASg";
+    const geminiService = new GeminiService(geminiApiKey);
+    const chaosGameService = new ChaosGameService(context.redis, geminiService);
+
+    // Create the game
+    const game = await chaosGameService.createGame(
+      data.title,
+      data.initialPrompt,
+      data.chaosLevel as ChaosLevel,
+      context.userId
+    );
+
+    return { status: 'success', gameId: game.id };
+  } catch (error) {
+    console.error('Error in createChaosGame:', error);
+    return { 
+      status: 'error', 
+      message: error instanceof Error ? error.message : 'Failed to create game' 
+    };
+  }
+}
