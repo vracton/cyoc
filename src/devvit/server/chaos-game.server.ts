@@ -54,7 +54,7 @@ Make sure the JSON is valid and properly formatted.
 `;
 
   try {
-    const genAI = new GoogleGenerativeAI("AIzaSyCEkDS-IGaotnNq2koQMipzEMr5XIwbASg");
+    const genAI = new GoogleGenerativeAI("GEMINI_API_KEY");
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
     console.log('Generating initial scene with prompt:', prompt);
@@ -186,7 +186,7 @@ Make sure the JSON is valid and properly formatted.
 `;
 
   try {
-    const genAI = new GoogleGenerativeAI("AIzaSyCEkDS-IGaotnNq2koQMipzEMr5XIwbASg");
+    const genAI = new GoogleGenerativeAI("GEMINI_API_KEY");
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
     console.log('Generating next scene with prompt:', prompt);
