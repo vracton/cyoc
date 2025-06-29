@@ -203,6 +203,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       title: values.title as string,
       subredditName: subreddit.name,
       preview: <Preview text="Choose Your Own Chaos - Interactive Story" />,
+      runAs: 'USER',
     });
 
     // Initialize post config and link it to the game
