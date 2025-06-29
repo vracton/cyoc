@@ -26,20 +26,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeElements() {
   elements = {
     app: document.getElementById('app'),
-    loadingScreen: document.getElementById('loading-screen'),
-    menuScreen: document.getElementById('menu-screen'),
-    gameScreen: document.getElementById('game-screen'),
+    loadingScreen: document.getElementById('loading'),
+    menuScreen: document.getElementById('menu'),
+    gameScreen: document.getElementById('game'),
     createStoryBtn: document.getElementById('create-story-btn'),
-    backToMenuBtn: document.getElementById('back-to-menu-btn'),
+    backToMenuBtn: document.getElementById('backBtn'),
     messageDiv: document.getElementById('message'),
-    gameTitle: document.getElementById('game-title'),
+    gameTitle: document.getElementById('gameTitle'),
     gameInfo: document.getElementById('game-info'),
-    sceneTitle: document.getElementById('scene-title'),
-    sceneDescription: document.getElementById('scene-description'),
-    choicesContainer: document.getElementById('choices-container'),
-    endingScreen: document.getElementById('ending-screen')
+    sceneTitle: document.getElementById('sceneTitle'),
+    sceneDescription: document.getElementById('sceneDescription'),
+    choicesContainer: document.getElementById('choices'),
+    endingScreen: document.getElementById('ending')
   };
-  print(elements)
 }
 
 function setupEventListeners() {
