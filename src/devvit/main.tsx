@@ -84,7 +84,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, redis } = context;
 
-  const { mount } = useWebView<WebViewMessage, DevvitMessage>({
+  const { mount } = useWebView({
     url: 'index.html',
     onMessage: async (message, webView) => {
       console.log('Received message from web view:', message);
