@@ -6,6 +6,7 @@ Devvit.configure({
   http: true,
   redis: true,
   userActions: true,
+  redditAPI: true,
 });
 
 // Message types for communication between Devvit and web view
