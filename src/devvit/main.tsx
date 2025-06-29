@@ -61,7 +61,7 @@ const createChaosStoryForm = Devvit.createForm(
     cancelLabel: 'Cancel'
   },
   async (event, context) => {
-    const { ui, redis } = context;
+    const { ui } = context;
     const values = event.values;
 
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -95,12 +95,6 @@ const createChaosStoryForm = Devvit.createForm(
 
       ui.showToast({ text: 'Chaos story created successfully!' });
       
-      // Store the game ID for the web view to access
-      const gameId = result.gameId;
-      
-      // You could store this in Redis if needed for later retrieval
-      // await redis.set(`latest_game:${context.userId}`, gameId);
-      
     } catch (error) {
       console.error('Error creating chaos story:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -132,7 +126,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
 
 // Main App Component with Web View
 const App: Devvit.BlockComponent = (context) => {
-  const { postId, userId } = context;
+  const { postId, userId, ui } = context;
 
   const webView = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
@@ -151,22 +145,13 @@ const App: Devvit.BlockComponent = (context) => {
       } else if (message.type === 'showCreateForm') {
         // Show the Devvit form when requested from web view
         try {
-          // We need to get the UI context to show the form
-          // This is a limitation - we can't directly show forms from web view messages
-          // The form needs to be triggered from a Devvit context (like a button press)
-          
-          // Instead, we'll send back an error message explaining this limitation
-          webView.postMessage({
-            type: 'error',
-            data: { 
-              message: 'Forms must be triggered from Devvit context. Use the menu action "[Bolt Chaos]: Create Story" instead.' 
-            }
-          });
+          // Show the form using the UI context
+          ui.showForm(createChaosStoryForm);
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
             type: 'error',
-            data: { message: 'Unable to show form from web view' }
+            data: { message: 'Unable to show form' }
           });
         }
       }
@@ -196,10 +181,6 @@ const App: Devvit.BlockComponent = (context) => {
         
         <text size="small" color="neutral-content-weak" alignment="center">
           Click to start your interactive story experience
-        </text>
-        
-        <text size="small" color="neutral-content-weak" alignment="center">
-          To create new stories, use the menu action "[Bolt Chaos]: Create Story"
         </text>
       </vstack>
     </vstack>

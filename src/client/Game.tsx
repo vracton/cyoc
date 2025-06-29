@@ -59,9 +59,10 @@ const Banner = () => {
   );
 };
 
-// Create Game Interface - No HTML forms, just instructions
+// Create Game Interface - Uses Devvit form integration
 const CreateGameInterface: React.FC = () => {
   const [message, setMessage] = useState<string>('');
+  const [formRequested, setFormRequested] = useState<boolean>(false);
 
   // Listen for messages from Devvit
   useEffect(() => {
@@ -70,8 +71,10 @@ const CreateGameInterface: React.FC = () => {
         const { message } = event.data;
         if (message.type === 'gameCreated') {
           setMessage(`Game created successfully! Game ID: ${message.data.gameId}`);
+          setFormRequested(false);
         } else if (message.type === 'error') {
           setMessage(`Error: ${message.data.message}`);
+          setFormRequested(false);
         }
       }
     };
@@ -81,6 +84,9 @@ const CreateGameInterface: React.FC = () => {
   }, []);
 
   const requestCreateForm = () => {
+    setFormRequested(true);
+    setMessage('Requesting form from Devvit...');
+    
     // Send message to Devvit to show the create form
     window.parent.postMessage({
       type: 'showCreateForm'
@@ -98,24 +104,38 @@ const CreateGameInterface: React.FC = () => {
         
         <button
           onClick={requestCreateForm}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-200"
+          disabled={formRequested}
+          className={`font-bold py-3 px-6 rounded-md transition duration-200 ${
+            formRequested 
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}
         >
-          Open Create Story Form
+          {formRequested ? 'Opening Form...' : 'Open Create Story Form'}
         </button>
         
         {message && (
-          <div className="mt-4 p-4 bg-gray-700 rounded-md">
+          <div className={`mt-4 p-4 rounded-md ${
+            message.includes('Error') ? 'bg-red-800' : 'bg-gray-700'
+          }`}>
             <p className="text-white">{message}</p>
           </div>
         )}
         
         <div className="text-sm text-gray-400 mt-6">
-          <p>The form will include:</p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
+          <p className="font-semibold mb-2">The form will include:</p>
+          <ul className="list-disc list-inside space-y-1">
             <li>Story Title</li>
             <li>Starting Scenario (description)</li>
             <li>Chaos Level (1-5 scale)</li>
           </ul>
+          
+          <div className="mt-4 p-3 bg-blue-900 rounded-md">
+            <p className="text-blue-200 text-xs">
+              <strong>Note:</strong> The form will open as a Devvit modal overlay. 
+              Fill it out and submit to create your chaos story!
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -272,6 +292,14 @@ export const Game: React.FC = () => {
       <div className="flex flex-col h-full items-center pt-8 pb-2 box-border">
         {showBanner && <Banner />}
         <CreateGameInterface />
+        <div className="mt-6">
+          <button
+            onClick={() => setGameMode('menu')}
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            ← Back to Main Menu
+          </button>
+        </div>
       </div>
     );
   }
@@ -281,6 +309,14 @@ export const Game: React.FC = () => {
       <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
         {showBanner && <Banner />}
         <ChaosGamePlay gameId={currentGameId} />
+        <div className="mt-6">
+          <button
+            onClick={() => setGameMode('menu')}
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            ← Back to Main Menu
+          </button>
+        </div>
       </div>
     );
   }
@@ -302,11 +338,15 @@ export const Game: React.FC = () => {
           >
             Create New Chaos Story
           </button>
+          
+          <div className="text-gray-400 text-sm mt-4">
+            <p>Stories are created using Devvit's native form system</p>
+            <p>Click the button above to access the creation interface</p>
+          </div>
         </div>
         
-        <div className="mt-8 text-gray-400 text-sm">
-          <p>Stories are created using Devvit's native form system for better integration with Reddit.</p>
-          {devvitData.postId && <div className="mt-2">Post ID: {devvitData.postId}</div>}
+        <div className="mt-8 text-gray-500 text-xs">
+          {devvitData.postId && <div>Post ID: {devvitData.postId}</div>}
           {devvitData.userId && <div>User ID: {devvitData.userId}</div>}
         </div>
       </div>
