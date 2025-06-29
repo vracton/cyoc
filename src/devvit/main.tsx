@@ -20,7 +20,7 @@ export type DevvitMessage =
 
 export type WebViewMessage =
   | { type: 'webViewReady' }
-  | { type: 'createGame'; data: { title: string; initialPrompt: string; chaosLevel: number } }
+  | { type: 'showCreateForm' }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
 
 // Create the form at the root level
@@ -61,7 +61,7 @@ const createChaosStoryForm = Devvit.createForm(
     cancelLabel: 'Cancel'
   },
   async (event, context) => {
-    const { reddit, ui } = context;
+    const { ui, redis } = context;
     const values = event.values;
 
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -69,37 +69,40 @@ const createChaosStoryForm = Devvit.createForm(
       return;
     }
 
-    let post: Post | undefined;
     try {
-      const subreddit = await reddit.getCurrentSubreddit();
-      
-      // Create the post first
-      post = await reddit.submitPost({
-        title: values.title as string,
-        subredditName: subreddit.name,
-        preview: <Preview text="Creating your chaos story..." />,
+      // Create the chaos game via API call
+      const response = await fetch('/api/chaos/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: values.title,
+          initialPrompt: values.initialPrompt,
+          chaosLevel: parseInt(values.chaosLevel as string)
+        }),
       });
 
-      // Initialize post config
-      await postConfigNew({
-        redis: context.redis,
-        postId: post.id,
-      });
+      if (!response.ok) {
+        throw new Error('Failed to create chaos game');
+      }
+
+      const result = await response.json();
+      
+      if (result.status === 'error') {
+        throw new Error(result.message);
+      }
 
       ui.showToast({ text: 'Chaos story created successfully!' });
-      ui.navigateTo(post.url);
+      
+      // Store the game ID for the web view to access
+      const gameId = result.gameId;
+      
+      // You could store this in Redis if needed for later retrieval
+      // await redis.set(`latest_game:${context.userId}`, gameId);
+      
     } catch (error) {
       console.error('Error creating chaos story:', error);
-      
-      // Clean up the post if it was created
-      if (post) {
-        try {
-          await post.remove(false);
-        } catch (cleanupError) {
-          console.error('Error cleaning up post:', cleanupError);
-        }
-      }
-      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       ui.showToast({ text: `Error creating story: ${errorMessage}` });
     }
@@ -145,35 +148,25 @@ const App: Devvit.BlockComponent = (context) => {
             userId: userId
           }
         });
-      } else if (message.type === 'createGame') {
+      } else if (message.type === 'showCreateForm') {
+        // Show the Devvit form when requested from web view
         try {
-          // Handle game creation via server API
-          const response = await fetch('/api/chaos/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(message.data),
-          });
-
-          const result = await response.json();
+          // We need to get the UI context to show the form
+          // This is a limitation - we can't directly show forms from web view messages
+          // The form needs to be triggered from a Devvit context (like a button press)
           
-          if (result.status === 'success') {
-            webView.postMessage({
-              type: 'gameCreated',
-              data: { gameId: result.gameId }
-            });
-          } else {
-            webView.postMessage({
-              type: 'error',
-              data: { message: result.message || 'Failed to create game' }
-            });
-          }
-        } catch (error) {
-          console.error('Error creating game:', error);
+          // Instead, we'll send back an error message explaining this limitation
           webView.postMessage({
             type: 'error',
-            data: { message: 'Network error creating game' }
+            data: { 
+              message: 'Forms must be triggered from Devvit context. Use the menu action "[Bolt Chaos]: Create Story" instead.' 
+            }
+          });
+        } catch (error) {
+          console.error('Error showing form:', error);
+          webView.postMessage({
+            type: 'error',
+            data: { message: 'Unable to show form from web view' }
           });
         }
       }
@@ -203,6 +196,10 @@ const App: Devvit.BlockComponent = (context) => {
         
         <text size="small" color="neutral-content-weak" alignment="center">
           Click to start your interactive story experience
+        </text>
+        
+        <text size="small" color="neutral-content-weak" alignment="center">
+          To create new stories, use the menu action "[Bolt Chaos]: Create Story"
         </text>
       </vstack>
     </vstack>

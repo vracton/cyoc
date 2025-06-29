@@ -59,29 +59,9 @@ const Banner = () => {
   );
 };
 
-// Chaos Game Components
-const CreateGameForm: React.FC<{ onGameCreated: (gameId: string) => void }> = ({ onGameCreated }) => {
-  const [title, setTitle] = useState('');
-  const [initialPrompt, setInitialPrompt] = useState('');
-  const [chaosLevel, setChaosLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
-  const [isCreating, setIsCreating] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !initialPrompt.trim()) return;
-
-    setIsCreating(true);
-    try {
-      // Send message to Devvit to create the game
-      window.parent.postMessage({
-        type: 'createGame',
-        data: { title: title.trim(), initialPrompt: initialPrompt.trim(), chaosLevel }
-      }, '*');
-    } catch (error) {
-      console.error('Error creating game:', error);
-      setIsCreating(false);
-    }
-  };
+// Create Game Interface - No HTML forms, just instructions
+const CreateGameInterface: React.FC = () => {
+  const [message, setMessage] = useState<string>('');
 
   // Listen for messages from Devvit
   useEffect(() => {
@@ -89,84 +69,55 @@ const CreateGameForm: React.FC<{ onGameCreated: (gameId: string) => void }> = ({
       if (event.data.type === 'devvit-message') {
         const { message } = event.data;
         if (message.type === 'gameCreated') {
-          onGameCreated(message.data.gameId);
-          setIsCreating(false);
+          setMessage(`Game created successfully! Game ID: ${message.data.gameId}`);
         } else if (message.type === 'error') {
-          console.error('Game creation error:', message.data.message);
-          setIsCreating(false);
+          setMessage(`Error: ${message.data.message}`);
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onGameCreated]);
+  }, []);
+
+  const requestCreateForm = () => {
+    // Send message to Devvit to show the create form
+    window.parent.postMessage({
+      type: 'showCreateForm'
+    }, '*');
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold text-white mb-6 text-center">Create Your Chaos Story</h2>
       
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
-            Story Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter a catchy title for your story"
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="prompt" className="block text-sm font-medium text-gray-300 mb-2">
-            Starting Scenario
-          </label>
-          <textarea
-            id="prompt"
-            value={initialPrompt}
-            onChange={(e) => setInitialPrompt(e.target.value)}
-            placeholder="Describe the initial situation or setting for your story..."
-            rows={4}
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="chaos" className="block text-sm font-medium text-gray-300 mb-2">
-            Chaos Level: {chaosLevel}
-          </label>
-          <input
-            type="range"
-            id="chaos"
-            min="1"
-            max="5"
-            value={chaosLevel}
-            onChange={(e) => setChaosLevel(parseInt(e.target.value) as 1 | 2 | 3 | 4 | 5)}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>Mild</span>
-            <span>Moderate</span>
-            <span>Wild</span>
-            <span>Extreme</span>
-            <span>Maximum</span>
-          </div>
-        </div>
-
+      <div className="text-center space-y-6">
+        <p className="text-gray-300 text-lg">
+          Click the button below to open the story creation form. This will use Devvit's native form system.
+        </p>
+        
         <button
-          type="submit"
-          disabled={isCreating || !title.trim() || !initialPrompt.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition duration-200"
+          onClick={requestCreateForm}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-200"
         >
-          {isCreating ? 'Creating Story...' : 'Create Chaos Story'}
+          Open Create Story Form
         </button>
-      </form>
+        
+        {message && (
+          <div className="mt-4 p-4 bg-gray-700 rounded-md">
+            <p className="text-white">{message}</p>
+          </div>
+        )}
+        
+        <div className="text-sm text-gray-400 mt-6">
+          <p>The form will include:</p>
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li>Story Title</li>
+            <li>Starting Scenario (description)</li>
+            <li>Chaos Level (1-5 scale)</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };
@@ -304,6 +255,9 @@ export const Game: React.FC = () => {
         const { message } = event.data;
         if (message.type === 'initialData') {
           setDevvitData(message.data);
+        } else if (message.type === 'gameCreated') {
+          setCurrentGameId(message.data.gameId);
+          setGameMode('play');
         }
       }
     };
@@ -312,17 +266,12 @@ export const Game: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleGameCreated = (gameId: string) => {
-    setCurrentGameId(gameId);
-    setGameMode('play');
-  };
-
   // Main game mode rendering
   if (gameMode === 'create') {
     return (
       <div className="flex flex-col h-full items-center pt-8 pb-2 box-border">
         {showBanner && <Banner />}
-        <CreateGameForm onGameCreated={handleGameCreated} />
+        <CreateGameInterface />
       </div>
     );
   }
@@ -356,7 +305,8 @@ export const Game: React.FC = () => {
         </div>
         
         <div className="mt-8 text-gray-400 text-sm">
-          {devvitData.postId && <div>Post ID: {devvitData.postId}</div>}
+          <p>Stories are created using Devvit's native form system for better integration with Reddit.</p>
+          {devvitData.postId && <div className="mt-2">Post ID: {devvitData.postId}</div>}
           {devvitData.userId && <div>User ID: {devvitData.userId}</div>}
         </div>
       </div>
