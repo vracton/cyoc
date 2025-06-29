@@ -212,7 +212,7 @@ const App: Devvit.BlockComponent = (context) => {
 
 // Create the form at the root level for menu actions
 const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context) => {
-  const { ui, redis } = context;
+  const { ui, redis, reddit } = context;
   const values = event.values;
 
   if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -220,11 +220,12 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     return;
   }
 
+  let post: Post | undefined;
   try {
     // Import the chaos game creation function directly
     const { createChaosGame } = await import('../server/core/chaos-game');
     
-    // Create the chaos game directly via server function
+    // Create the chaos game first
     const result = await createChaosGame({
       title: values.title,
       initialPrompt: values.initialPrompt,
@@ -235,16 +236,44 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       throw new Error(result.message);
     }
 
-    ui.showToast({ text: 'Chaos story created successfully!' });
+    // Now create a Reddit post for this game
+    const subreddit = await reddit.getCurrentSubreddit();
+    post = await reddit.submitPost({
+      title: values.title as string,
+      subredditName: subreddit.name,
+      preview: <App />,
+    });
+
+    // Initialize post config and link it to the game
+    await postConfigNew({
+      redis: context.redis,
+      postId: post.id,
+    });
+
+    // Store the game ID in the post config
+    await redis.set(`post_game:${post.id}`, result.gameId);
+
+    ui.showToast({ text: 'Chaos story and post created successfully!' });
+    ui.navigateTo(post.url);
     
   } catch (error) {
     console.error('Error creating chaos story:', error);
+    
+    // Clean up the post if it was created
+    if (post) {
+      try {
+        await post.remove(false);
+      } catch (cleanupError) {
+        console.error('Error cleaning up post:', cleanupError);
+      }
+    }
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     ui.showToast({ text: `Error creating story: ${errorMessage}` });
   }
 });
 
-// Menu action for creating chaos games
+// Menu action for creating chaos games - this creates both the game AND the post
 Devvit.addMenuItem({
   label: '[Bolt Chaos]: Create Story',
   location: 'subreddit',
@@ -257,9 +286,9 @@ Devvit.addMenuItem({
   },
 });
 
-// Menu action for playing existing chaos games
+// Menu action for creating empty posts (for testing)
 Devvit.addMenuItem({
-  label: '[Bolt Chaos]: New Story Post',
+  label: '[Bolt Chaos]: New Empty Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (event, context) => {
@@ -279,7 +308,7 @@ Devvit.addMenuItem({
         postId: post.id,
       });
       
-      ui.showToast({ text: 'Chaos game post created!' });
+      ui.showToast({ text: 'Empty chaos game post created!' });
       ui.navigateTo(post.url);
     } catch (error) {
       if (post) {
