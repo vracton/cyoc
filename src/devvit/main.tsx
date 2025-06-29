@@ -1,7 +1,11 @@
 import { Devvit, Post, useWebView } from '@devvit/public-api';
 
 // Configure Devvit to enable HTTP requests
-Devvit.configure({ http: true });
+Devvit.configure({ 
+  http: true,
+  redis: true,
+  userActions: true,
+});
 
 // Side effect import to bundle the server. The /index is required for server splitting.
 import '../server/index';
