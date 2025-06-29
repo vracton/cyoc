@@ -13,11 +13,14 @@ Devvit.configure({
 export type DevvitMessage =
   | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string } }
   | { type: 'gameCreated'; data: { gameId: string } }
+  | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
+  | { type: 'choiceResult'; data: { status: 'success'; scene: any } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
   | { type: 'webViewReady' }
   | { type: 'showCreateForm' }
+  | { type: 'getGame'; data: { gameId: string } }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
 
 // Extract form configuration for reuse
@@ -103,6 +106,36 @@ const App: Devvit.BlockComponent = (context) => {
             gameId: gameId || undefined
           }
         });
+      } else if (message.type === 'getGame') {
+        // Handle game data request
+        try {
+          const result = await getChaosGame(message.data.gameId, { redis });
+          webView.postMessage({
+            type: 'gameData',
+            data: result
+          });
+        } catch (error) {
+          console.error('Error getting game:', error);
+          webView.postMessage({
+            type: 'gameData',
+            data: { status: 'error', message: 'Failed to load game' }
+          });
+        }
+      } else if (message.type === 'makeChoice') {
+        // Handle choice making
+        try {
+          const result = await makeChaosChoice(message.data, { redis, userId });
+          webView.postMessage({
+            type: 'choiceResult',
+            data: result
+          });
+        } catch (error) {
+          console.error('Error making choice:', error);
+          webView.postMessage({
+            type: 'choiceResult',
+            data: { status: 'error', message: 'Failed to process choice' }
+          });
+        }
       } else if (message.type === 'showCreateForm') {
         // Create a form specifically for this web view context
         const createFormForWebView = Devvit.createForm(formConfig, async (event, formContext) => {
@@ -209,7 +242,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     post = await reddit.submitPost({
       title: values.title as string,
       subredditName: subreddit.name,
-      preview: <Preview text="Choose Your Own Chaos - Interactive Story" />,
+      preview: <Preview text={`${values.title as string} - Click to play!`} />,
       runAs: 'USER',
       userGeneratedContent: { text: values.title as string }
     });
@@ -283,11 +316,11 @@ Devvit.addMenuItem({
   },
 });
 
-// Add custom post type
+// Add custom post type - this is what actually renders the interactive content
 Devvit.addCustomPostType({
   name: 'Chaos Game',
   height: 'tall',
-  render: App,
+  render: App, // This renders the interactive web view, not the preview
 });
 
 export default Devvit;
