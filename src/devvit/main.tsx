@@ -244,13 +244,13 @@ const App: Devvit.BlockComponent = (context) => {
   return (
     <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
       <text size="xxlarge" weight="bold" alignment="center middle">
-        🎲 Choose Your Own Chaos
+        Choose Your Own Chaos
       </text>
       <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-        Interactive storytelling where your choices matter
+        Let the chaos begin!
       </text>
       <button appearance="primary" onPress={mount}>
-        Launch Game
+        Enter
       </button>
     </vstack>
   );
