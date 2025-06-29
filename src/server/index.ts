@@ -1,146 +1,158 @@
 import express from 'express';
 import { createServer, getContext, getServerPort } from '@devvit/server';
-import { InitResponse, MakeChoiceResponse, GetSceneResponse } from '../shared/types/game';
-import { postConfigGet, postConfigNew, postConfigMaybeGet, getGameState, saveGameState } from './core/post';
-import { getScene } from './core/scenes';
+import { CheckResponse, InitResponse, LetterState } from '../shared/types/game';
+import { postConfigGet, postConfigNew, postConfigMaybeGet } from './core/post';
+import { allWords } from './core/words';
 import { getRedis } from '@devvit/redis';
 
 const app = express();
 
+// Middleware for JSON body parsing
 app.use(express.json());
+// Middleware for URL-encoded body parsing
 app.use(express.urlencoded({ extended: true }));
+// Middleware for plain text body parsing
 app.use(express.text());
 
 const router = express.Router();
 
-router.get('/api/init', async (_req, res) => {
-  const { postId, userId } = getContext();
-  const redis = getRedis();
+router.get<{ postId: string }, InitResponse | { status: string; message: string }>(
+  '/api/init',
+  async (_req, res): Promise<void> => {
+    const { postId } = getContext();
+    const redis = getRedis();
 
-  if (!postId) {
-    res.status(400).json({
-      status: 'error',
-      message: 'postId is required but missing from context',
-    });
-    return;
-  }
-
-  if (!userId) {
-    res.status(400).json({
-      status: 'error',
-      message: 'Must be logged in to play',
-    });
-    return;
-  }
-
-  try {
-    let config = await postConfigMaybeGet({ redis, postId });
-    if (!config) {
-      await postConfigNew({ redis, postId });
-      config = await postConfigGet({ redis, postId });
+    if (!postId) {
+      console.error('API Init Error: postId not found in devvit context');
+      res.status(400).json({
+        status: 'error',
+        message: 'postId is required but missing from context',
+      });
+      return;
     }
 
-    const gameState = await getGameState({ redis, postId, userId });
+    try {
+      let config = await postConfigMaybeGet({ redis, postId });
+      if (!config || !config.wordOfTheDay) {
+        console.log(`No valid config found for post ${postId}, creating new one.`);
+        await postConfigNew({ redis: getRedis(), postId });
+        config = await postConfigGet({ redis, postId });
+      }
+
+      if (!config.wordOfTheDay) {
+        console.error(
+          `API Init Error: wordOfTheDay still not found for post ${postId} after attempting creation.`
+        );
+        throw new Error('Failed to initialize game configuration.');
+      }
+
+      res.json({
+        status: 'success',
+        postId: postId,
+      });
+    } catch (error) {
+      console.error(`API Init Error for post ${postId}:`, error);
+      const message =
+        error instanceof Error ? error.message : 'Unknown error during initialization';
+      res.status(500).json({ status: 'error', message });
+    }
+  }
+);
+
+router.post<{ postId: string }, CheckResponse, { guess: string }>(
+  '/api/check',
+  async (req, res): Promise<void> => {
+    const { guess } = req.body;
+    const { postId, userId } = getContext();
+    const redis = getRedis();
+
+    if (!postId) {
+      res.status(400).json({ status: 'error', message: 'postId is required' });
+      return;
+    }
+    if (!userId) {
+      res.status(400).json({ status: 'error', message: 'Must be logged in' });
+      return;
+    }
+    if (!guess) {
+      res.status(400).json({ status: 'error', message: 'Guess is required' });
+      return;
+    }
+
+    const config = await postConfigGet({ redis, postId });
+    const { wordOfTheDay } = config;
+
+    const normalizedGuess = guess.toLowerCase();
+
+    if (normalizedGuess.length !== 5) {
+      res.status(400).json({ status: 'error', message: 'Guess must be 5 letters long' });
+      return;
+    }
+
+    const wordExists = allWords.includes(normalizedGuess);
+
+    if (!wordExists) {
+      res.json({
+        status: 'success',
+        exists: false,
+        solved: false,
+        correct: Array(5).fill('initial') as [
+          LetterState,
+          LetterState,
+          LetterState,
+          LetterState,
+          LetterState,
+        ],
+      });
+      return;
+    }
+
+    const answerLetters = wordOfTheDay.split('');
+    const resultCorrect: LetterState[] = Array(5).fill('initial');
+    let solved = true;
+    const guessLetters = normalizedGuess.split('');
+
+    for (let i = 0; i < 5; i++) {
+      if (guessLetters[i] === answerLetters[i]) {
+        resultCorrect[i] = 'correct';
+        answerLetters[i] = '';
+      } else {
+        solved = false;
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      if (resultCorrect[i] === 'initial') {
+        const guessedLetter = guessLetters[i]!;
+        const presentIndex = answerLetters.indexOf(guessedLetter);
+        if (presentIndex !== -1) {
+          resultCorrect[i] = 'present';
+          answerLetters[presentIndex] = '';
+        }
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      if (resultCorrect[i] === 'initial') {
+        resultCorrect[i] = 'absent';
+      }
+    }
 
     res.json({
       status: 'success',
-      postId: postId,
-      gameState: gameState,
+      exists: true,
+      solved,
+      correct: resultCorrect as [LetterState, LetterState, LetterState, LetterState, LetterState],
     });
-  } catch (error) {
-    console.error(`API Init Error for post ${postId}:`, error);
-    const message = error instanceof Error ? error.message : 'Unknown error during initialization';
-    res.status(500).json({ status: 'error', message });
   }
-});
+);
 
-router.get('/api/scene/:sceneId', async (req, res) => {
-  const { sceneId } = req.params;
-
-  if (!sceneId) {
-    res.status(400).json({ status: 'error', message: 'Scene ID is required' });
-    return;
-  }
-
-  const scene = getScene(sceneId);
-  if (!scene) {
-    res.status(404).json({ status: 'error', message: 'Scene not found' });
-    return;
-  }
-
-  res.json({
-    status: 'success',
-    scene: scene,
-  });
-});
-
-router.post('/api/choice', async (req, res) => {
-  const { choiceId, currentSceneId } = req.body;
-  const { postId, userId } = getContext();
-  const redis = getRedis();
-
-  if (!postId) {
-    res.status(400).json({ status: 'error', message: 'postId is required' });
-    return;
-  }
-  if (!userId) {
-    res.status(400).json({ status: 'error', message: 'Must be logged in' });
-    return;
-  }
-  if (!choiceId || !currentSceneId) {
-    res.status(400).json({ status: 'error', message: 'Choice ID and current scene ID are required' });
-    return;
-  }
-
-  try {
-    const currentScene = getScene(currentSceneId);
-    if (!currentScene) {
-      res.status(404).json({ status: 'error', message: 'Current scene not found' });
-      return;
-    }
-
-    const choice = currentScene.choices.find(c => c.id === choiceId);
-    if (!choice) {
-      res.status(400).json({ status: 'error', message: 'Invalid choice' });
-      return;
-    }
-
-    const nextScene = getScene(choice.nextSceneId);
-    if (!nextScene) {
-      res.status(404).json({ status: 'error', message: 'Next scene not found' });
-      return;
-    }
-
-    const gameState = await getGameState({ redis, postId, userId });
-    
-    // Update game state
-    gameState.currentSceneId = nextScene.id;
-    if (!gameState.visitedScenes.includes(nextScene.id)) {
-      gameState.visitedScenes.push(nextScene.id);
-    }
-    gameState.playerChoices.push({
-      sceneId: currentSceneId,
-      choiceId: choiceId,
-      timestamp: Date.now(),
-    });
-
-    await saveGameState({ redis, postId, userId, gameState });
-
-    res.json({
-      status: 'success',
-      scene: nextScene,
-      gameState: gameState,
-    });
-  } catch (error) {
-    console.error('Choice error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error making choice';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
+// Use router middleware
 app.use(router);
 
+// Get port from environment variable with fallback
 const port = getServerPort();
+
 const server = createServer(app);
 server.on('error', (err) => console.error(`server error; ${err.stack}`));
 server.listen(port, () => console.log(`http://localhost:${port}`));

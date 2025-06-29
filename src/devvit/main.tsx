@@ -1,17 +1,25 @@
 import { Devvit, Post } from '@devvit/public-api';
 
+// Side effect import to bundle the server. The /index is required for server splitting.
 import '../server/index';
 import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
 
 defineConfig({
-  name: 'Choose Your Own Chaos',
+  name: '[Bolt] Word Guesser',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
+  // TODO: Cannot use without ability to pass in more metadata
+  // menu: {
+  //   enable: true,
+  //   label: 'New Word Guesser Post',
+  //   postTitle: 'Word Guesser',
+  //   preview: <Preview />,
+  // },
 });
 
-const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
+export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...' }) => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
@@ -32,8 +40,10 @@ const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Loading...'
   );
 };
 
+// TODO: Remove this when defineConfig allows webhooks before post creation
 Devvit.addMenuItem({
-  label: '[Bolt Choose Your Own Chaos]: New Post',
+  // Please update as you work on your idea!
+  label: '[Bolt Word Guesser]: New Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (_event, context) => {
@@ -43,7 +53,8 @@ Devvit.addMenuItem({
     try {
       const subreddit = await reddit.getCurrentSubreddit();
       post = await reddit.submitPost({
-        title: 'Choose Your Own Chaos',
+        // Title of the post. You'll want to update!
+        title: 'Word Guesser',
         subredditName: subreddit.name,
         preview: <Preview />,
       });
