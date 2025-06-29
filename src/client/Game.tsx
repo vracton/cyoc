@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Keyboard } from './Keyboard';
-import { LetterState, CheckResponse } from '../shared/types/game';
+import { LetterState, CheckResponse, GameScene, ChaosGame, CreateGameRequest, MakeChoiceRequest } from '../shared/types/game';
 import packageJson from '../../package.json';
 
 const WORD_LENGTH = 5;
@@ -82,7 +82,239 @@ const Banner = () => {
   );
 };
 
+// Chaos Game Components
+const CreateGameForm: React.FC<{ onGameCreated: (gameId: string) => void }> = ({ onGameCreated }) => {
+  const [title, setTitle] = useState('');
+  const [initialPrompt, setInitialPrompt] = useState('');
+  const [chaosLevel, setChaosLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !initialPrompt.trim()) return;
+
+    setIsCreating(true);
+    try {
+      // Send message to Devvit to create the game
+      window.parent.postMessage({
+        type: 'createGame',
+        data: { title: title.trim(), initialPrompt: initialPrompt.trim(), chaosLevel }
+      }, '*');
+    } catch (error) {
+      console.error('Error creating game:', error);
+      setIsCreating(false);
+    }
+  };
+
+  // Listen for messages from Devvit
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'devvit-message') {
+        const { message } = event.data;
+        if (message.type === 'gameCreated') {
+          onGameCreated(message.data.gameId);
+          setIsCreating(false);
+        } else if (message.type === 'error') {
+          console.error('Game creation error:', message.data.message);
+          setIsCreating(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onGameCreated]);
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
+      <h2 className="text-3xl font-bold text-white mb-6 text-center">Create Your Chaos Story</h2>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+            Story Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter a catchy title for your story"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="prompt" className="block text-sm font-medium text-gray-300 mb-2">
+            Starting Scenario
+          </label>
+          <textarea
+            id="prompt"
+            value={initialPrompt}
+            onChange={(e) => setInitialPrompt(e.target.value)}
+            placeholder="Describe the initial situation or setting for your story..."
+            rows={4}
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="chaos" className="block text-sm font-medium text-gray-300 mb-2">
+            Chaos Level: {chaosLevel}
+          </label>
+          <input
+            type="range"
+            id="chaos"
+            min="1"
+            max="5"
+            value={chaosLevel}
+            onChange={(e) => setChaosLevel(parseInt(e.target.value) as 1 | 2 | 3 | 4 | 5)}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Mild</span>
+            <span>Moderate</span>
+            <span>Wild</span>
+            <span>Extreme</span>
+            <span>Maximum</span>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isCreating || !title.trim() || !initialPrompt.trim()}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition duration-200"
+        >
+          {isCreating ? 'Creating Story...' : 'Create Chaos Story'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const ChaosGamePlay: React.FC<{ gameId: string }> = ({ gameId }) => {
+  const [game, setGame] = useState<ChaosGame | null>(null);
+  const [currentScene, setCurrentScene] = useState<GameScene | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadGame = async () => {
+      try {
+        const response = await fetch(`/api/chaos/game/${gameId}`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          setGame(result.game);
+          setCurrentScene(result.game.currentScene);
+        } else {
+          setError(result.message || 'Failed to load game');
+        }
+      } catch (err) {
+        setError('Network error loading game');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGame();
+  }, [gameId]);
+
+  const makeChoice = async (choiceId: string) => {
+    if (!game) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/chaos/choice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id, choiceId })
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setCurrentScene(result.scene);
+        // Update game state if needed
+      } else {
+        setError(result.message || 'Failed to make choice');
+      }
+    } catch (err) {
+      setError('Network error making choice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-400 text-xl">{error}</div>
+      </div>
+    );
+  }
+
+  if (!game || !currentScene) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-white text-xl">Game not found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h1 className="text-3xl font-bold text-white mb-2">{game.title}</h1>
+        <div className="text-gray-400 text-sm mb-4">
+          Chaos Level: {game.chaosLevel}/5 | Scene: {currentScene.id}
+        </div>
+        
+        <h2 className="text-xl font-semibold text-blue-400 mb-4">{currentScene.title}</h2>
+        <p className="text-gray-300 text-lg leading-relaxed mb-6">{currentScene.description}</p>
+        
+        {currentScene.isEnding ? (
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-400 mb-4">The End</div>
+            <div className="text-gray-400">Thank you for playing!</div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-white mb-3">What do you do?</h3>
+            {currentScene.choices.map((choice, index) => (
+              <button
+                key={choice.id}
+                onClick={() => makeChoice(choice.id)}
+                disabled={loading}
+                className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded-md transition duration-200 border border-gray-600 hover:border-blue-500"
+              >
+                <span className="font-semibold text-blue-400">{index + 1}.</span> {choice.text}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const Game: React.FC = () => {
+  const [gameMode, setGameMode] = useState<'menu' | 'create' | 'play' | 'wordle'>('menu');
+  const [currentGameId, setCurrentGameId] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(false);
+  const [devvitData, setDevvitData] = useState<{ postId?: string; userId?: string }>({});
+
+  // Legacy Wordle game state
   const [board, setBoard] = useState<Tile[][]>(
     Array.from({ length: MAX_GUESSES }, () =>
       Array.from({ length: WORD_LENGTH }, () => ({
@@ -99,13 +331,34 @@ export const Game: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [allowInput, setAllowInput] = useState(true);
   const [grid, setGrid] = useState('');
-  const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     const hostname = window.location.hostname;
     setShowBanner(!hostname.endsWith('devvit.net'));
+
+    // Notify Devvit that web view is ready
+    window.parent.postMessage({ type: 'webViewReady' }, '*');
+
+    // Listen for messages from Devvit
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'devvit-message') {
+        const { message } = event.data;
+        if (message.type === 'initialData') {
+          setDevvitData(message.data);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const handleGameCreated = (gameId: string) => {
+    setCurrentGameId(gameId);
+    setGameMode('play');
+  };
+
+  // Legacy Wordle functions
   const showMessage = useCallback((msg: string, time = 2000) => {
     setMessage(msg);
     if (time > 0) {
@@ -127,11 +380,11 @@ export const Game: React.FC = () => {
       if (!allowInput || success) return;
 
       const currentBoardRow = board[currentRowIndex];
-      if (!currentBoardRow) return; // Should not happen
+      if (!currentBoardRow) return;
 
       if (/^[a-zA-Z]$/.test(key) && key.length === 1) {
         if (currentColIndex < WORD_LENGTH) {
-          const newBoard = board.map((row) => [...row]); // Create a deep copy
+          const newBoard = board.map((row) => [...row]);
           const tileToUpdate = newBoard[currentRowIndex]?.[currentColIndex];
           if (tileToUpdate) {
             tileToUpdate.letter = key.toLowerCase();
@@ -172,7 +425,6 @@ export const Game: React.FC = () => {
               return;
             }
 
-            // status is 'success' from here
             if (result.exists === false) {
               shake();
               showMessage('Not in word list');
@@ -204,7 +456,6 @@ export const Game: React.FC = () => {
                     ) {
                       newLetterStates[letterKey] = 'absent';
                     } else if (!currentKeyState) {
-                      // If no state yet, assign current result
                       newLetterStates[letterKey] = letterResult;
                     }
                   }
@@ -236,7 +487,7 @@ export const Game: React.FC = () => {
               setCurrentColIndex(0);
               setTimeout(() => setAllowInput(true), 1600);
             } else {
-              showMessage(`Game Over! The word was: TODO - get word from server`, -1); // Placeholder for actual word
+              showMessage(`Game Over! The word was: CHAOS`, -1);
               setTimeout(() => setAllowInput(false), 1600);
             }
           } catch (error) {
@@ -255,7 +506,7 @@ export const Game: React.FC = () => {
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
-      void onKey(e.key); // Using void as onKey is async but we don't need to await its result here
+      void onKey(e.key);
     };
     window.addEventListener('keyup', handleKeyup);
     return () => {
@@ -274,50 +525,105 @@ export const Game: React.FC = () => {
     };
   }, []);
 
-  return (
-    <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
-      {showBanner && <Banner />}
-      {message && (
-        <div className="message">
-          {message}
-          {grid && <pre className="text-xs whitespace-pre-wrap">{grid}</pre>}
-        </div>
-      )}
-      <header className="w-full max-w-md px-2">
-        <h1 className="text-4xl font-bold tracking-wider my-2">Word Guesser</h1>
-      </header>
-
-      <div id="board" className="mb-4">
-        {board.map((row, rowIndex) => (
-          <div
-            key={rowIndex}
-            className={`row ${shakeRowIndex === rowIndex ? 'shake' : ''} ${
-              success && currentRowIndex === rowIndex ? 'jump' : ''
-            }`}
-          >
-            {row.map((tile, tileIndex) => (
-              <div
-                key={tileIndex}
-                className={`tile ${tile.letter ? 'filled' : ''} ${tile.state !== 'initial' ? 'revealed' : ''}`}
-              >
-                <div className="front" style={{ transitionDelay: `${tileIndex * 300}ms` }}>
-                  {tile.letter}
-                </div>
-                <div
-                  className={`back ${tile.state}`}
-                  style={{
-                    transitionDelay: `${tileIndex * 300}ms`,
-                    animationDelay: `${tileIndex * 100}ms`,
-                  }}
-                >
-                  {tile.letter}
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
+  // Main game mode rendering
+  if (gameMode === 'create') {
+    return (
+      <div className="flex flex-col h-full items-center pt-8 pb-2 box-border">
+        {showBanner && <Banner />}
+        <CreateGameForm onGameCreated={handleGameCreated} />
       </div>
-      <Keyboard onKey={onKey} letterStates={letterStates} />
+    );
+  }
+
+  if (gameMode === 'play' && currentGameId) {
+    return (
+      <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
+        {showBanner && <Banner />}
+        <ChaosGamePlay gameId={currentGameId} />
+      </div>
+    );
+  }
+
+  if (gameMode === 'wordle') {
+    return (
+      <div className="flex flex-col h-full items-center pt-2 pb-2 box-border">
+        {showBanner && <Banner />}
+        {message && (
+          <div className="message">
+            {message}
+            {grid && <pre className="text-xs whitespace-pre-wrap">{grid}</pre>}
+          </div>
+        )}
+        <header className="w-full max-w-md px-2">
+          <h1 className="text-4xl font-bold tracking-wider my-2">Word Guesser</h1>
+        </header>
+
+        <div id="board" className="mb-4">
+          {board.map((row, rowIndex) => (
+            <div
+              key={rowIndex}
+              className={`row ${shakeRowIndex === rowIndex ? 'shake' : ''} ${
+                success && currentRowIndex === rowIndex ? 'jump' : ''
+              }`}
+            >
+              {row.map((tile, tileIndex) => (
+                <div
+                  key={tileIndex}
+                  className={`tile ${tile.letter ? 'filled' : ''} ${tile.state !== 'initial' ? 'revealed' : ''}`}
+                >
+                  <div className="front" style={{ transitionDelay: `${tileIndex * 300}ms` }}>
+                    {tile.letter}
+                  </div>
+                  <div
+                    className={`back ${tile.state}`}
+                    style={{
+                      transitionDelay: `${tileIndex * 300}ms`,
+                      animationDelay: `${tileIndex * 100}ms`,
+                    }}
+                  >
+                    {tile.letter}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <Keyboard onKey={onKey} letterStates={letterStates} />
+      </div>
+    );
+  }
+
+  // Main menu
+  return (
+    <div className="flex flex-col h-full items-center justify-center pt-2 pb-2 box-border">
+      {showBanner && <Banner />}
+      <div className="max-w-2xl mx-auto p-6 text-center">
+        <h1 className="text-5xl font-bold text-white mb-4">Choose Your Own Chaos</h1>
+        <p className="text-xl text-gray-300 mb-8">
+          Create and play interactive stories where your choices shape the narrative!
+        </p>
+        
+        <div className="space-y-4">
+          <button
+            onClick={() => setGameMode('create')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition duration-200"
+          >
+            Create New Chaos Story
+          </button>
+          
+          <button
+            onClick={() => setGameMode('wordle')}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition duration-200"
+          >
+            Play Word Guesser (Legacy)
+          </button>
+        </div>
+        
+        <div className="mt-8 text-gray-400 text-sm">
+          {devvitData.postId && <div>Post ID: {devvitData.postId}</div>}
+          {devvitData.userId && <div>User ID: {devvitData.userId}</div>}
+        </div>
+      </div>
     </div>
   );
 };

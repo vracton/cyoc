@@ -12,6 +12,17 @@ defineConfig({
   menu: { enable: false },
 });
 
+// Message types for communication between Devvit and web view
+export type DevvitMessage =
+  | { type: 'initialData'; data: { postId: string; userId?: string } }
+  | { type: 'gameCreated'; data: { gameId: string } }
+  | { type: 'error'; data: { message: string } };
+
+export type WebViewMessage =
+  | { type: 'webViewReady' }
+  | { type: 'createGame'; data: { title: string; initialPrompt: string; chaosLevel: number } }
+  | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
+
 // Create the form at the root level
 const createChaosStoryForm = Devvit.createForm(
   {
@@ -75,29 +86,6 @@ const createChaosStoryForm = Devvit.createForm(
         postId: post.id,
       });
 
-      // Create the chaos game via API call
-      const response = await fetch('/api/chaos/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: values.title,
-          initialPrompt: values.initialPrompt,
-          chaosLevel: parseInt(values.chaosLevel as string)
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create chaos game');
-      }
-
-      const result = await response.json();
-      
-      if (result.status === 'error') {
-        throw new Error(result.message);
-      }
-
       ui.showToast({ text: 'Chaos story created successfully!' });
       ui.navigateTo(post.url);
     } catch (error) {
@@ -139,50 +127,84 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   );
 };
 
-// Chaos Game Creation Form
-const CreateChaosGameForm: Devvit.BlockComponent = () => {
+// Main App Component with Web View
+const App: Devvit.BlockComponent = (context) => {
+  const { postId, userId } = context;
+
+  const webView = Devvit.useWebView<WebViewMessage, DevvitMessage>({
+    url: 'index.html',
+    onMessage: async (message, webView) => {
+      console.log('Received message from web view:', message);
+
+      if (message.type === 'webViewReady') {
+        // Send initial data to web view
+        webView.postMessage({
+          type: 'initialData',
+          data: {
+            postId: postId || '',
+            userId: userId
+          }
+        });
+      } else if (message.type === 'createGame') {
+        try {
+          // Handle game creation via server API
+          const response = await fetch('/api/chaos/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message.data),
+          });
+
+          const result = await response.json();
+          
+          if (result.status === 'success') {
+            webView.postMessage({
+              type: 'gameCreated',
+              data: { gameId: result.gameId }
+            });
+          } else {
+            webView.postMessage({
+              type: 'error',
+              data: { message: result.message || 'Failed to create game' }
+            });
+          }
+        } catch (error) {
+          console.error('Error creating game:', error);
+          webView.postMessage({
+            type: 'error',
+            data: { message: 'Network error creating game' }
+          });
+        }
+      }
+    },
+    onUnmount: () => {
+      console.log('Web view closed');
+    },
+  });
+
   return (
     <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
       <text size="xxlarge" weight="bold" color="neutral-content-strong">
         Choose Your Own Chaos
       </text>
       <text size="medium" color="neutral-content" alignment="center">
-        Create an interactive story where other Redditors make choices that shape the narrative!
+        Create and play interactive stories where choices shape the narrative!
       </text>
       
       <vstack gap="small" width={'100%'} maxWidth="400px">
         <button 
           appearance="primary" 
           size="large"
-          onPress={() => {
-            // This will be handled by the menu action
-          }}
+          onPress={() => webView.mount()}
         >
-          Create New Chaos Story
+          Launch Chaos Game
         </button>
         
         <text size="small" color="neutral-content-weak" alignment="center">
-          Click to start creating your interactive story
+          Click to start your interactive story experience
         </text>
       </vstack>
-    </vstack>
-  );
-};
-
-// Game Display Component
-const ChaosGameDisplay: Devvit.BlockComponent<{ gameId?: string }> = ({ gameId }) => {
-  if (!gameId) {
-    return <CreateChaosGameForm />;
-  }
-
-  return (
-    <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-      <text size="large" weight="bold" color="neutral-content-strong">
-        Chaos Game: {gameId}
-      </text>
-      <text size="medium" color="neutral-content" alignment="center">
-        Loading your interactive story...
-      </text>
     </vstack>
   );
 };
@@ -214,7 +236,7 @@ Devvit.addMenuItem({
       post = await reddit.submitPost({
         title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
-        preview: <Preview text="Loading chaos stories..." />,
+        preview: <App />,
       });
       
       await postConfigNew({
@@ -235,6 +257,13 @@ Devvit.addMenuItem({
       }
     }
   },
+});
+
+// Add custom post type
+Devvit.addCustomPostType({
+  name: 'Chaos Game',
+  height: 'tall',
+  render: App,
 });
 
 export default Devvit;
