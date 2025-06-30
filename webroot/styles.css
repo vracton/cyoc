@@ -158,6 +158,45 @@ body::after {
     box-shadow: var(--neon-glow) var(--neon-cyan), inset 0 0 20px rgba(0, 255, 255, 0.3);
 }
 
+/* Bolt.new Logo - Fixed Position Bottom Right */
+.bolt-logo-link {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 1000;
+    transition: all 200ms ease;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--minimal-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+}
+
+.bolt-logo-link:hover {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--neon-cyan);
+    box-shadow: var(--neon-glow) var(--neon-cyan);
+}
+
+.bolt-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    transition: all 200ms ease;
+    filter: brightness(1.2);
+}
+
+.bolt-logo-link:hover .bolt-logo {
+    filter: brightness(1.5) drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
+}
+
 /* Modal Styles */
 .modal {
     position: fixed;
@@ -1369,6 +1408,18 @@ body::after {
         width: 48px;
         height: 48px;
         font-size: 1.3rem;
+    }
+    
+    .bolt-logo-link {
+        bottom: var(--spacing-md);
+        right: var(--spacing-md);
+        width: 40px;
+        height: 40px;
+    }
+    
+    .bolt-logo {
+        width: 28px;
+        height: 28px;
     }
     
     .game-info {
