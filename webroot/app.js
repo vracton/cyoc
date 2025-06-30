@@ -264,22 +264,11 @@ function updateGameDisplay() {
     // Add status badges
     const chaosLevel = createStatusBadge(`CHAOS LEVEL ${game.chaosLevel}`, 'chaos');
     const creator = createStatusBadge(`CREATED BY: u/${createdBy}`, 'info');
-    const sceneInfo = createStatusBadge(`SCENE: ${scene.id}`, 'info');
+    const sceneInfo = createStatusBadge(`SCENE ${scene.id.split('_')[1]}`, 'info');
     
     elements.gameInfo.appendChild(chaosLevel);
     elements.gameInfo.appendChild(creator);
     elements.gameInfo.appendChild(sceneInfo);
-    
-    // Add special status badges based on chaos level
-    if (game.chaosLevel >= 4) {
-      const mindBreak = createStatusBadge('MIND-BREAK', 'mind-break');
-      elements.gameInfo.appendChild(mindBreak);
-    }
-    
-    if (game.chaosLevel === 5) {
-      const death = createStatusBadge('CHARACTER DEATH', 'death');
-      elements.gameInfo.appendChild(death);
-    }
   }
   
   // Update story history
