@@ -1,4 +1,4 @@
-import { Devvit, useWebView, useState } from '@devvit/public-api';
+import { Devvit, useWebView, useState, useForm } from '@devvit/public-api';
 import { createChaosGame, getChaosGame, makeChaosChoice, voteOnHistoryChoice, getUserChaosProfile, getChaosLeaderboard } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
@@ -253,11 +253,94 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
 
 // Main App Component with Web View - Updated with neon styling
 const App: Devvit.BlockComponent = (context) => {
-  const { postId, userId, reddit, redis } = context;
+  const { postId, userId, reddit, redis, ui } = context;
+
+  // Create the form using useForm hook
+  const createForm = useForm(formConfig, async (event) => {
+    const values = event.values;
+
+    if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+      ui.showToast({ text: 'Please fill in all fields!' });
+      return;
+    }
+
+    try {
+      console.log('Creating game with values:', values);
+      
+      // Get current user info
+      let username = undefined;
+      try {
+        if (userId) {
+          const user = await reddit.getUserById(userId);
+          username = user.username;
+        }
+      } catch (error) {
+        console.error('Error getting username for game creation:', error);
+      }
+      
+      // Create the chaos game using server-side function
+      const result = await createChaosGame({
+        title: values.title as string,
+        initialPrompt: values.initialPrompt as string,
+        chaosLevel: parseInt(values.chaosLevel as string)
+      }, { redis, userId, username, reddit });
+
+      console.log('Game creation result:', result);
+
+      if (result.status === 'error') {
+        throw new Error(result.message);
+      }
+
+      // Store the game ID in the post config for later retrieval
+      if (postId) {
+        await redis.set(`post_game:${postId}`, result.gameId);
+        console.log('Stored game ID in post config:', postId, result.gameId);
+      }
+
+      // Get the complete game data to send to webview
+      const gameResult = await getChaosGame(result.gameId, { redis });
+      let gameData = null;
+      if (gameResult.status === 'success') {
+        gameData = gameResult.game;
+      }
+
+      ui.showToast({ text: 'Chaos story created successfully!' });
+      
+      // Notify the web view that a game was created with complete game data
+      if (webViewRef.current) {
+        webViewRef.current.postMessage({
+          type: 'gameCreated',
+          data: { 
+            gameId: result.gameId,
+            game: gameData
+          }
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error creating chaos story:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      ui.showToast({ text: `Error creating story: ${errorMessage}` });
+      
+      // Notify web view of error
+      if (webViewRef.current) {
+        webViewRef.current.postMessage({
+          type: 'error',
+          data: { message: errorMessage }
+        });
+      }
+    }
+  });
+
+  // Store webView reference to use in form handler
+  let webViewRef: { current: any } = { current: null };
 
   const { mount } = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
     onMessage: async (message, webView) => {
+      // Store webView reference
+      webViewRef.current = webView;
+      
       console.log('Received message from web view:', message);
 
       if (message.type === 'webViewReady') {
@@ -419,83 +502,9 @@ const App: Devvit.BlockComponent = (context) => {
           });
         }
       } else if (message.type === 'showCreateForm') {
-        // Create a form specifically for this web view context
-        const createFormForWebView = Devvit.createForm(formConfig, async (event, formContext) => {
-          const { ui, redis: formRedis, reddit: formReddit } = formContext;
-          const values = event.values;
-
-          if (!values.title || !values.initialPrompt || !values.chaosLevel) {
-            ui.showToast({ text: 'Please fill in all fields!' });
-            return;
-          }
-
-          try {
-            console.log('Creating game with values:', values);
-            
-            // Get current user info
-            let username = undefined;
-            try {
-              if (userId) {
-                const user = await formReddit.getUserById(userId);
-                username = user.username;
-              }
-            } catch (error) {
-              console.error('Error getting username for game creation:', error);
-            }
-            
-            // Create the chaos game using server-side function
-            const result = await createChaosGame({
-              title: values.title as string,
-              initialPrompt: values.initialPrompt as string,
-              chaosLevel: parseInt(values.chaosLevel as string)
-            }, { redis: formRedis, userId, username, reddit: formReddit });
-
-            console.log('Game creation result:', result);
-
-            if (result.status === 'error') {
-              throw new Error(result.message);
-            }
-
-            // Store the game ID in the post config for later retrieval
-            if (postId) {
-              await formRedis.set(`post_game:${postId}`, result.gameId);
-              console.log('Stored game ID in post config:', postId, result.gameId);
-            }
-
-            // Get the complete game data to send to webview
-            const gameResult = await getChaosGame(result.gameId, { redis: formRedis });
-            let gameData = null;
-            if (gameResult.status === 'success') {
-              gameData = gameResult.game;
-            }
-
-            ui.showToast({ text: 'Chaos story created successfully!' });
-            
-            // Notify the web view that a game was created with complete game data
-            webView.postMessage({
-              type: 'gameCreated',
-              data: { 
-                gameId: result.gameId,
-                game: gameData
-              }
-            });
-            
-          } catch (error) {
-            console.error('Error creating chaos story:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            ui.showToast({ text: `Error creating story: ${errorMessage}` });
-            
-            // Notify web view of error
-            webView.postMessage({
-              type: 'error',
-              data: { message: errorMessage }
-            });
-          }
-        });
-
-        // Show the form
+        // Show the form using the useForm hook
         try {
-          context.ui.showForm(createFormForWebView);
+          ui.showForm(createForm);
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
