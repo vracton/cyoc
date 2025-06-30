@@ -1,10 +1,11 @@
 import { RedisClient } from '@devvit/redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ChaosGame, GameScene, ChaosLevel, StoryHistoryEntry } from '../../shared/types/game';
+import { ChaosGame, GameScene, ChaosLevel, StoryHistoryEntry, GameChoice, ChaosVotes, ChaosVoteType, UserChaosProfile } from '../../shared/types/game';
 
 // Server-side functions for chaos game management
 const getChaosGameKey = (gameId: string) => `chaos_game:${gameId}` as const;
 const getGamesByUserKey = (userId: string) => `user_games:${userId}` as const;
+const getUserChaosProfileKey = (userId: string) => `user_chaos_profile:${userId}` as const;
 
 // Gemini service functions
 function getChaosLevelDescription(level: ChaosLevel): string {
@@ -16,6 +17,24 @@ function getChaosLevelDescription(level: ChaosLevel): string {
     5: 'Maximum Chaos - Completely unpredictable and absurd'
   };
   return descriptions[level];
+}
+
+function calculateChoiceChaosLevel(chaosVotes: ChaosVotes): number {
+  const totalVotes = chaosVotes.mild.length + chaosVotes.wild.length + chaosVotes.insane.length;
+  if (totalVotes === 0) return 0;
+  
+  // Weight the votes: mild = 1, wild = 2, insane = 3
+  const weightedSum = (chaosVotes.mild.length * 1) + (chaosVotes.wild.length * 2) + (chaosVotes.insane.length * 3);
+  return Math.round((weightedSum / totalVotes) * 10) / 10; // Round to 1 decimal place
+}
+
+function calculateUserGlobalChaosLevel(profile: UserChaosProfile): number {
+  const total = profile.chaosContributions.mild + profile.chaosContributions.wild + profile.chaosContributions.insane;
+  if (total === 0) return 0;
+  
+  // Weight the contributions: mild = 1, wild = 2, insane = 3
+  const weightedSum = (profile.chaosContributions.mild * 1) + (profile.chaosContributions.wild * 2) + (profile.chaosContributions.insane * 3);
+  return Math.round((weightedSum / total) * 10) / 10; // Round to 1 decimal place
 }
 
 async function generateInitialScene(
@@ -92,7 +111,9 @@ Make sure the JSON is valid and properly formatted.
       choices: sceneData.choices.map((choice: any, index: number) => ({
         id: choice.id || `choice${index + 1}`,
         text: choice.text,
-        nextSceneId: `scene_${index + 1}`
+        nextSceneId: `scene_${index + 1}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       }))
     };
   } catch (error) {
@@ -110,22 +131,30 @@ function createFallbackScene(title: string, initialPrompt: string, chaosLevel: C
       {
         id: 'choice1',
         text: 'Look around carefully and assess the situation',
-        nextSceneId: 'scene_1'
+        nextSceneId: 'scene_1',
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice2',
         text: 'Take immediate action without hesitation',
-        nextSceneId: 'scene_2'
+        nextSceneId: 'scene_2',
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice3',
         text: 'Try to find other people or allies',
-        nextSceneId: 'scene_3'
+        nextSceneId: 'scene_3',
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice4',
         text: 'Do something completely unexpected',
-        nextSceneId: 'scene_4'
+        nextSceneId: 'scene_4',
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       }
     ]
   };
@@ -218,7 +247,9 @@ Make sure the JSON is valid and properly formatted.
       choices: sceneData.choices.map((choice: any, index: number) => ({
         id: choice.id || `choice${index + 1}`,
         text: choice.text,
-        nextSceneId: `scene_${sceneNumber + index + 1}`
+        nextSceneId: `scene_${sceneNumber + index + 1}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       })),
       isEnding: sceneNumber > 10 && Math.random() < 0.3 // 30% chance of ending after scene 10
     };
@@ -247,22 +278,30 @@ function createFallbackNextScene(chosenChoice: string, sceneNumber: number, chao
       {
         id: 'choice1',
         text: 'Try to adapt to the new circumstances',
-        nextSceneId: `scene_${sceneNumber + 1}`
+        nextSceneId: `scene_${sceneNumber + 1}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice2',
         text: 'Fight against the unexpected change',
-        nextSceneId: `scene_${sceneNumber + 2}`
+        nextSceneId: `scene_${sceneNumber + 2}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice3',
         text: 'Embrace the chaos and go with the flow',
-        nextSceneId: `scene_${sceneNumber + 3}`
+        nextSceneId: `scene_${sceneNumber + 3}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       },
       {
         id: 'choice4',
         text: 'Try to find a creative solution',
-        nextSceneId: `scene_${sceneNumber + 4}`
+        nextSceneId: `scene_${sceneNumber + 4}`,
+        chaosVotes: { mild: [], wild: [], insane: [] },
+        chaosLevel: 0
       }
     ],
     isEnding: sceneNumber > 10 && Math.random() < 0.3
@@ -405,7 +444,8 @@ export async function makeChaosChoice(
       choiceText: chosenChoice.text,
       timestamp: Date.now(),
       chosenBy: context.userId,
-      chosenByUsername: context.username
+      chosenByUsername: context.username,
+      chaosLevel: chosenChoice.chaosLevel || 0
     };
 
     game.storyHistory.push(historyEntry);
@@ -431,4 +471,127 @@ export async function makeChaosChoice(
     console.error('Error making choice:', error);
     return { status: 'error', message: 'Failed to process choice' };
   }
+}
+
+export async function voteChaosChoice(
+  data: { gameId: string; choiceId: string; voteType: string },
+  context: { redis: RedisClient; userId?: string; username?: string }
+): Promise<{ status: 'success'; choice: GameChoice; userProfile: UserChaosProfile } | { status: 'error'; message: string }> {
+  try {
+    if (!context.userId) {
+      return { status: 'error', message: 'User ID required' };
+    }
+
+    const voteType = data.voteType as ChaosVoteType;
+    if (!['mild', 'wild', 'insane'].includes(voteType)) {
+      return { status: 'error', message: 'Invalid vote type' };
+    }
+
+    const gameResult = await getChaosGame(data.gameId, context);
+    if (gameResult.status === 'error') {
+      return gameResult;
+    }
+
+    const game = gameResult.game;
+
+    // Find the choice to vote on
+    const choice = game.currentScene.choices.find(choice => choice.id === data.choiceId);
+    if (!choice) {
+      return { status: 'error', message: 'Choice not found' };
+    }
+
+    // Initialize chaos votes if not present
+    if (!choice.chaosVotes) {
+      choice.chaosVotes = { mild: [], wild: [], insane: [] };
+    }
+
+    // Remove user's previous vote if any
+    choice.chaosVotes.mild = choice.chaosVotes.mild.filter(id => id !== context.userId);
+    choice.chaosVotes.wild = choice.chaosVotes.wild.filter(id => id !== context.userId);
+    choice.chaosVotes.insane = choice.chaosVotes.insane.filter(id => id !== context.userId);
+
+    // Add new vote
+    choice.chaosVotes[voteType].push(context.userId!);
+
+    // Recalculate choice chaos level
+    choice.chaosLevel = calculateChoiceChaosLevel(choice.chaosVotes);
+
+    // Update user's chaos profile
+    const userProfile = await updateUserChaosProfile(context.userId!, voteType, context);
+
+    // Save updated game
+    await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
+
+    return { status: 'success', choice, userProfile };
+  } catch (error) {
+    console.error('Error voting on chaos choice:', error);
+    return { status: 'error', message: 'Failed to process chaos vote' };
+  }
+}
+
+export async function getUserChaosProfile(
+  userId: string,
+  context: { redis: RedisClient }
+): Promise<{ status: 'success'; profile: UserChaosProfile } | { status: 'error'; message: string }> {
+  try {
+    const profileData = await context.redis.get(getUserChaosProfileKey(userId));
+    
+    if (!profileData) {
+      // Create new profile
+      const newProfile: UserChaosProfile = {
+        userId,
+        totalChaosVotes: 0,
+        chaosContributions: { mild: 0, wild: 0, insane: 0 },
+        globalChaosLevel: 0,
+        lastUpdated: Date.now()
+      };
+      
+      await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(newProfile));
+      return { status: 'success', profile: newProfile };
+    }
+    
+    const profile = JSON.parse(profileData);
+    return { status: 'success', profile };
+  } catch (error) {
+    console.error('Error getting user chaos profile:', error);
+    return { status: 'error', message: 'Failed to retrieve user profile' };
+  }
+}
+
+async function updateUserChaosProfile(
+  userId: string,
+  voteType: ChaosVoteType,
+  context: { redis: RedisClient; username?: string }
+): Promise<UserChaosProfile> {
+  const profileResult = await getUserChaosProfile(userId, context);
+  
+  let profile: UserChaosProfile;
+  if (profileResult.status === 'success') {
+    profile = profileResult.profile;
+  } else {
+    // Create new profile if it doesn't exist
+    profile = {
+      userId,
+      username: context.username,
+      totalChaosVotes: 0,
+      chaosContributions: { mild: 0, wild: 0, insane: 0 },
+      globalChaosLevel: 0,
+      lastUpdated: Date.now()
+    };
+  }
+
+  // Update profile with new vote
+  profile.totalChaosVotes += 1;
+  profile.chaosContributions[voteType] += 1;
+  profile.globalChaosLevel = calculateUserGlobalChaosLevel(profile);
+  profile.lastUpdated = Date.now();
+  
+  if (context.username && !profile.username) {
+    profile.username = context.username;
+  }
+
+  // Save updated profile
+  await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(profile));
+  
+  return profile;
 }

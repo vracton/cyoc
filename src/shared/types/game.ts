@@ -6,6 +6,14 @@ export interface GameChoice {
   id: string;
   text: string;
   nextSceneId: string;
+  chaosVotes?: ChaosVotes;
+  chaosLevel?: number; // Calculated average chaos level
+}
+
+export interface ChaosVotes {
+  mild: string[]; // Array of user IDs who voted mild (🥴)
+  wild: string[]; // Array of user IDs who voted wild (🤯)
+  insane: string[]; // Array of user IDs who voted insane (🤡)
 }
 
 export interface GameScene {
@@ -25,6 +33,7 @@ export interface StoryHistoryEntry {
   timestamp: number;
   chosenBy: string;
   chosenByUsername?: string; // Reddit username for display
+  chaosLevel?: number; // Chaos level at time of choice
 }
 
 export interface GameState {
@@ -35,6 +44,19 @@ export interface GameState {
     choiceId: string;
     timestamp: number;
   }>;
+}
+
+export interface UserChaosProfile {
+  userId: string;
+  username?: string;
+  totalChaosVotes: number;
+  chaosContributions: {
+    mild: number;
+    wild: number;
+    insane: number;
+  };
+  globalChaosLevel: number; // Calculated based on voting patterns
+  lastUpdated: number;
 }
 
 export interface ChaosGame {
@@ -51,6 +73,8 @@ export interface ChaosGame {
 
 export type ChaosLevel = 1 | 2 | 3 | 4 | 5;
 
+export type ChaosVoteType = 'mild' | 'wild' | 'insane';
+
 export interface CreateGameRequest {
   title: string;
   initialPrompt: string;
@@ -60,6 +84,12 @@ export interface CreateGameRequest {
 export interface MakeChoiceRequest {
   gameId: string;
   choiceId: string;
+}
+
+export interface VoteChaosRequest {
+  gameId: string;
+  choiceId: string;
+  voteType: ChaosVoteType;
 }
 
 export type CreateGameResponse = Response<{
@@ -78,4 +108,9 @@ export type MakeChoiceResponse = Response<{
 
 export type GetSceneResponse = Response<{
   scene: GameScene;
+}>;
+
+export type VoteChaosResponse = Response<{
+  choice: GameChoice;
+  userProfile: UserChaosProfile;
 }>;

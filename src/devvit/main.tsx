@@ -1,5 +1,5 @@
 import { Devvit, useWebView } from '@devvit/public-api';
-import { createChaosGame, getChaosGame, makeChaosChoice } from './server/chaos-game.server.js';
+import { createChaosGame, getChaosGame, makeChaosChoice, voteChaosChoice, getUserChaosProfile } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
 Devvit.configure({ 
@@ -11,17 +11,19 @@ Devvit.configure({
 
 // Message types for communication between Devvit and web view
 export type DevvitMessage =
-  | { type: 'initialData'; data: { postId: string; userId?: string; username?: string; gameId?: string; game?: any } }
+  | { type: 'initialData'; data: { postId: string; userId?: string; username?: string; gameId?: string; game?: any; userProfile?: any } }
   | { type: 'gameCreated'; data: { gameId: string; game: any } }
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
   | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
+  | { type: 'chaosVoteResult'; data: { status: 'success'; choice: any; userProfile: any } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
   | { type: 'webViewReady' }
   | { type: 'showCreateForm' }
   | { type: 'getGame'; data: { gameId: string } }
-  | { type: 'makeChoice'; data: { gameId: string; choiceId: string } };
+  | { type: 'makeChoice'; data: { gameId: string; choiceId: string } }
+  | { type: 'voteChaos'; data: { gameId: string; choiceId: string; voteType: string } };
 
 // Form configuration for creating chaos stories
 const formConfig = {
@@ -102,6 +104,19 @@ const App: Devvit.BlockComponent = (context) => {
           console.error('Error getting username:', error);
         }
 
+        // Get user's chaos profile
+        let userProfile = null;
+        if (userId) {
+          try {
+            const profileResult = await getUserChaosProfile(userId, { redis });
+            if (profileResult.status === 'success') {
+              userProfile = profileResult.profile;
+            }
+          } catch (error) {
+            console.error('Error getting user chaos profile:', error);
+          }
+        }
+
         // Check if there's already a game associated with this post
         let gameId = null;
         let gameData = null;
@@ -126,7 +141,7 @@ const App: Devvit.BlockComponent = (context) => {
           }
         }
 
-        console.log('Sending initial data to web view:', { postId, userId, username, gameId, hasGameData: !!gameData });
+        console.log('Sending initial data to web view:', { postId, userId, username, gameId, hasGameData: !!gameData, hasUserProfile: !!userProfile });
 
         // Send initial data to web view, including complete game data if available
         webView.postMessage({
@@ -136,7 +151,8 @@ const App: Devvit.BlockComponent = (context) => {
             userId: userId,
             username: username,
             gameId: gameId,
-            game: gameData // Send the complete game data
+            game: gameData, // Send the complete game data
+            userProfile: userProfile // Send user's chaos profile
           }
         });
       } else if (message.type === 'getGame') {
@@ -183,6 +199,36 @@ const App: Devvit.BlockComponent = (context) => {
           webView.postMessage({
             type: 'choiceResult',
             data: { status: 'error', message: 'Failed to process choice' }
+          });
+        }
+      } else if (message.type === 'voteChaos') {
+        // Handle chaos voting
+        try {
+          console.log('Processing chaos vote:', message.data);
+          
+          // Get current user info for the vote
+          let username = undefined;
+          try {
+            if (userId) {
+              const user = await reddit.getUserById(userId);
+              username = user.username;
+            }
+          } catch (error) {
+            console.error('Error getting username for vote:', error);
+          }
+
+          const result = await voteChaosChoice(message.data, { redis, userId, username });
+          console.log('Chaos vote result:', result);
+          
+          webView.postMessage({
+            type: 'chaosVoteResult',
+            data: result
+          });
+        } catch (error) {
+          console.error('Error processing chaos vote:', error);
+          webView.postMessage({
+            type: 'chaosVoteResult',
+            data: { status: 'error', message: 'Failed to process chaos vote' }
           });
         }
       } else if (message.type === 'showCreateForm') {
