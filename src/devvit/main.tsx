@@ -277,7 +277,7 @@ const App: Devvit.BlockComponent = (context) => {
       } catch (error) {
         console.error('Error getting username for game creation:', error);
       }
-      
+      console.log(values)
       // Create the chaos game using server-side function
       const result = await createChaosGame({
         title: values.title as string,
