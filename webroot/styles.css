@@ -830,9 +830,9 @@ body::before {
 }
 
 .leaderboard-entry.current-user {
-    background: var(--gradient-fire);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    border-color: var(--explosive-yellow);
+    background: var(--bg-primary);
+    border: 2px solid var(--explosive-yellow);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
 }
 
 .rank-section {
