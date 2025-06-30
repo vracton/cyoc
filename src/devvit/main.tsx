@@ -223,7 +223,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         <spacer size="small" />
         <hstack width={'100%'} alignment="center middle">
           <text size="small" color="accent" weight="bold">
-            {isEnding ? 'View Full Story' : 'Continue the Adventure'} →
+            {isEnding ? 'View Full Story' : 'Continue the Chaos'} →
           </text>
         </hstack>
       </vstack>
