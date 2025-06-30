@@ -1,6 +1,6 @@
 import { RedisClient } from '@devvit/redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ChaosGame, GameScene, ChaosLevel, StoryNode } from '../../shared/types/game';
+import { ChaosGame, GameScene, ChaosLevel } from '../../shared/types/game';
 
 // Server-side functions for chaos game management
 const getChaosGameKey = (gameId: string) => `chaos_game:${gameId}` as const;
@@ -16,109 +16,6 @@ function getChaosLevelDescription(level: ChaosLevel): string {
     5: 'Maximum Chaos - Completely unpredictable and absurd'
   };
   return descriptions[level];
-}
-
-// Story tree management functions
-function createInitialStoryTree(initialScene: GameScene): StoryNode {
-  return {
-    id: 'root',
-    sceneId: initialScene.id,
-    timestamp: Date.now(),
-    children: [],
-    isActive: true
-  };
-}
-
-function updateStoryTree(
-  tree: StoryNode, 
-  activePathIds: string[], 
-  choiceId: string, 
-  choiceText: string, 
-  newScene: GameScene, 
-  userId: string
-): { updatedTree: StoryNode; newActivePathIds: string[] } {
-  // First, mark all nodes as inactive
-  markAllNodesInactive(tree);
-  
-  // Find the current active leaf node
-  const activeLeaf = findNodeByPath(tree, activePathIds);
-  
-  if (!activeLeaf) {
-    throw new Error('Could not find active leaf node');
-  }
-  
-  // Create new node for the choice made
-  const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const newNode: StoryNode = {
-    id: newNodeId,
-    sceneId: newScene.id,
-    choiceId: choiceId,
-    choiceText: choiceText,
-    chosenBy: userId,
-    timestamp: Date.now(),
-    children: [],
-    isActive: true
-  };
-  
-  // Add the new node as a child of the current active leaf
-  activeLeaf.children.push(newNode);
-  
-  // Update the active path
-  const newActivePathIds = [...activePathIds, newNodeId];
-  
-  // Mark the new active path
-  markActivePath(tree, newActivePathIds);
-  
-  return {
-    updatedTree: tree,
-    newActivePathIds: newActivePathIds
-  };
-}
-
-function markAllNodesInactive(node: StoryNode): void {
-  node.isActive = false;
-  node.children.forEach(child => markAllNodesInactive(child));
-}
-
-function markActivePath(tree: StoryNode, activePathIds: string[]): void {
-  // Mark root as active if it's in the path
-  if (activePathIds.length === 0 || activePathIds[0] === tree.id || tree.id === 'root') {
-    tree.isActive = true;
-    
-    // If there are more path IDs, find the next node and continue
-    if (activePathIds.length > 0) {
-      const nextId = activePathIds[0] === 'root' ? activePathIds[1] : activePathIds[0];
-      if (nextId) {
-        const nextNode = tree.children.find(child => child.id === nextId);
-        if (nextNode) {
-          const remainingPath = activePathIds[0] === 'root' ? activePathIds.slice(1) : activePathIds;
-          markActivePath(nextNode, remainingPath.slice(1));
-        }
-      }
-    }
-  }
-}
-
-function findNodeByPath(tree: StoryNode, pathIds: string[]): StoryNode | null {
-  if (pathIds.length === 0) {
-    return tree;
-  }
-  
-  const nextId = pathIds[0];
-  if (tree.id === nextId || (tree.id === 'root' && pathIds.length > 0)) {
-    const remainingPath = tree.id === 'root' ? pathIds : pathIds.slice(1);
-    if (remainingPath.length === 0) {
-      return tree;
-    }
-    
-    const nextNodeId = remainingPath[0];
-    const nextNode = tree.children.find(child => child.id === nextNodeId);
-    if (nextNode) {
-      return findNodeByPath(nextNode, remainingPath);
-    }
-  }
-  
-  return null;
 }
 
 async function generateInitialScene(
@@ -412,9 +309,6 @@ export async function createChaosGame(
 
     console.log('Generated initial scene:', initialScene);
 
-    // Create the initial story tree
-    const storyTree = createInitialStoryTree(initialScene);
-
     const game: ChaosGame = {
       id: gameId,
       title: data.title,
@@ -423,9 +317,7 @@ export async function createChaosGame(
       createdAt: Date.now(),
       createdBy: context.userId,
       currentScene: initialScene,
-      storyHistory: [],
-      storyTree: storyTree,
-      activePathIds: ['root']
+      storyHistory: []
     };
 
     // Save the game
@@ -480,13 +372,6 @@ export async function getChaosGame(
     }
     
     const game = JSON.parse(gameData);
-    
-    // Ensure backward compatibility for games without story tree
-    if (!game.storyTree) {
-      game.storyTree = createInitialStoryTree(game.currentScene);
-      game.activePathIds = ['root'];
-    }
-    
     return { status: 'success', game };
   } catch (error) {
     console.error('Error getting game:', error);
@@ -537,20 +422,8 @@ export async function makeChaosChoice(
       sceneNumber
     );
 
-    // Update the story tree
-    const { updatedTree, newActivePathIds } = updateStoryTree(
-      game.storyTree,
-      game.activePathIds,
-      data.choiceId,
-      chosenChoice.text,
-      newScene,
-      context.userId
-    );
-
-    // Update game with new scene and tree
+    // Update game with new scene
     game.currentScene = newScene;
-    game.storyTree = updatedTree;
-    game.activePathIds = newActivePathIds;
 
     // Save updated game
     await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
