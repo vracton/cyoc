@@ -16,6 +16,17 @@ export interface GameScene {
   isEnding?: boolean;
 }
 
+export interface StoryNode {
+  id: string;
+  sceneId: string;
+  choiceId?: string;
+  choiceText?: string;
+  chosenBy?: string;
+  timestamp: number;
+  children: StoryNode[];
+  isActive: boolean; // Indicates if this is part of the current active path
+}
+
 export interface GameState {
   currentSceneId: string;
   visitedScenes: string[];
@@ -41,6 +52,8 @@ export interface ChaosGame {
     timestamp: number;
     chosenBy: string;
   }>;
+  storyTree: StoryNode; // Root node of the story tree
+  activePathIds: string[]; // Array of node IDs representing the current active path
 }
 
 export type ChaosLevel = 1 | 2 | 3 | 4 | 5;

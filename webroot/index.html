@@ -11,7 +11,7 @@
         <div id="loading" class="screen">
             <div class="loading-content">
                 <h1>Choose Your Own Chaos</h1>
-                <p>Loading your interactive story...</p>
+                <p class="loading-message">Loading your interactive story...</p>
                 <div class="spinner"></div>
             </div>
         </div>
@@ -21,7 +21,7 @@
                 <h1>Choose Your Own Chaos</h1>
                 <p>Create and play interactive stories where your choices shape the narrative!</p>
                 <button id="createStoryBtn" class="primary-btn">Create New Chaos Story</button>
-                <div id="status" class="status-message"></div>
+                <div id="message" class="status-message"></div>
             </div>
         </div>
 
@@ -29,10 +29,15 @@
             <div class="game-content">
                 <div class="game-header">
                     <h1 id="gameTitle"></h1>
-                    <div class="game-info">
+                    <div class="game-info" id="game-info">
                         <span id="chaosLevel"></span>
                         <span id="sceneId"></span>
                     </div>
+                    <button id="historyToggleBtn" class="history-toggle-btn">Show Story Tree</button>
+                </div>
+                
+                <div id="historyTree" class="history-tree-container hidden">
+                    <!-- Story tree will be populated here -->
                 </div>
                 
                 <div class="scene-content">

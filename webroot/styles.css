@@ -125,6 +125,23 @@ body {
     color: #93c5fd;
 }
 
+.history-toggle-btn {
+    background-color: #374151;
+    color: #d1d5db;
+    border: 2px solid #4b5563;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+
+.history-toggle-btn:hover {
+    background-color: #4b5563;
+    border-color: #60a5fa;
+}
+
 /* Status Messages */
 .status-message {
     margin-top: 1rem;
@@ -145,7 +162,7 @@ body {
 
 /* Game Screen */
 .game-content {
-    max-width: 800px;
+    max-width: 1000px;
     width: 100%;
     padding: 20px;
 }
@@ -169,6 +186,89 @@ body {
     margin: 0 10px;
 }
 
+/* History Tree */
+.history-tree-container {
+    background-color: #1f2937;
+    border: 2px solid #374151;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-tree-container.hidden {
+    display: none;
+}
+
+.history-tree-container h3 {
+    color: #60a5fa;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.tree-container {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.tree-node {
+    margin-bottom: 8px;
+}
+
+.tree-node.active-path {
+    background-color: rgba(96, 165, 250, 0.1);
+    border-left: 3px solid #60a5fa;
+    padding-left: 8px;
+}
+
+.node-indent {
+    position: relative;
+}
+
+.node-content {
+    padding: 6px 0;
+}
+
+.scene-info {
+    color: #d1d5db;
+}
+
+.scene-info strong {
+    color: #fbbf24;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.scene-desc {
+    color: #9ca3af;
+    font-size: 0.8rem;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+.choice-info {
+    color: #d1d5db;
+}
+
+.choice-text {
+    color: #60a5fa;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.user-info {
+    color: #10b981;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.timestamp {
+    color: #6b7280;
+    font-size: 0.7rem;
+}
+
+/* Scene Content */
 .scene-content {
     background-color: #1f2937;
     padding: 2rem;
@@ -257,6 +357,23 @@ body {
     margin-bottom: 2rem;
 }
 
+.ending-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: #1f2937;
+    border-radius: 12px;
+}
+
+.ending-message h3 {
+    color: #10b981;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.ending-message p {
+    color: #9ca3af;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .screen {
@@ -290,4 +407,49 @@ body {
         left: 15px;
         font-size: 0.9rem;
     }
+    
+    .history-tree-container {
+        max-height: 300px;
+        padding: 1rem;
+    }
+    
+    .tree-container {
+        font-size: 0.8rem;
+    }
+    
+    .node-indent {
+        margin-left: 10px !important;
+    }
+}
+
+/* Tree structure visual enhancements */
+.tree-node:not(.active-path) {
+    opacity: 0.7;
+}
+
+.tree-node.active-path .choice-text {
+    color: #fbbf24;
+}
+
+.tree-node.active-path .user-info {
+    color: #34d399;
+}
+
+/* Scrollbar styling for history tree */
+.history-tree-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-tree-container::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 4px;
+}
+
+.history-tree-container::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 4px;
+}
+
+.history-tree-container::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
 }
