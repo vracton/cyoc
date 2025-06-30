@@ -737,7 +737,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
 
 // Menu action for creating chaos games - this creates both the game AND the post
 Devvit.addMenuItem({
-  label: '[Bolt Chaos]: Create Story',
+  label: '[CYOC]: Create Story',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (event, context) => {
@@ -748,7 +748,7 @@ Devvit.addMenuItem({
 
 // Menu action for creating empty posts (for testing)
 Devvit.addMenuItem({
-  label: '[Bolt Chaos]: New Empty Post',
+  label: '[CYOC]: New Empty Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (event, context) => {
