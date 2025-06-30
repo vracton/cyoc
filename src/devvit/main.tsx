@@ -250,8 +250,8 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = async (props,
   }
 };
 
-// Main App Component with Web View
-const App: Devvit.BlockComponent = (context) => {
+// Main App Component with Web View - Updated to show story preview instead of simple "Enter" button
+const App: Devvit.BlockComponent = async (context) => {
   const { postId, userId, reddit, redis } = context;
 
   const { mount } = useWebView<WebViewMessage, DevvitMessage>({
@@ -509,19 +509,130 @@ const App: Devvit.BlockComponent = (context) => {
     },
   });
 
-  return (
-    <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
-      <text size="xxlarge" weight="bold" alignment="center middle">
-        Choose Your Own Chaos
-      </text>
-      <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-        Let the chaos begin!
-      </text>
-      <button appearance="primary" onPress={mount}>
-        Enter
-      </button>
-    </vstack>
-  );
+  // Check if there's already a game associated with this post for the preview
+  let gameId = null;
+  let gameData = null;
+  
+  if (postId) {
+    try {
+      gameId = await redis.get(`post_game:${postId}`);
+      if (gameId) {
+        const gameResult = await getChaosGame(gameId, { redis });
+        if (gameResult.status === 'success') {
+          gameData = gameResult.game;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading game for preview:', error);
+    }
+  }
+
+  if (gameData) {
+    // Show story preview with current scene and choices
+    const scene = gameData.currentScene;
+    const isEnding = scene.isEnding;
+    const storyProgress = gameData.storyHistory.length;
+    
+    return (
+      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+        {/* Header */}
+        <hstack width={'100%'} alignment="space-between middle">
+          <text size="large" weight="bold" color="accent" wrap>
+            🎲 {gameData.title}
+          </text>
+          <text size="small" color="neutral-content-weak">
+            Scene {storyProgress + 1}
+          </text>
+        </hstack>
+        
+        {/* Story Status */}
+        <hstack width={'100%'} gap="small" alignment="center middle">
+          <text size="small" color="neutral-content-weak">
+            Chaos Level {gameData.chaosLevel}/5
+          </text>
+          <text size="small" color="neutral-content-weak">
+            •
+          </text>
+          <text size="small" color="neutral-content-weak">
+            {storyProgress} choices made
+          </text>
+          {isEnding && (
+            <>
+              <text size="small" color="neutral-content-weak">•</text>
+              <text size="small" color="accent">ENDING</text>
+            </>
+          )}
+        </hstack>
+        
+        {/* Current Scene */}
+        <vstack width={'100%'} gap="small" alignment="center middle">
+          <text size="medium" weight="bold" color="neutral-content" wrap alignment="center middle">
+            {scene.title}
+          </text>
+          <text size="small" color="neutral-content-weak" wrap alignment="center middle">
+            {scene.description.length > 200 
+              ? scene.description.substring(0, 200) + '...' 
+              : scene.description}
+          </text>
+        </vstack>
+        
+        {/* Choices Preview */}
+        {!isEnding && scene.choices && scene.choices.length > 0 && (
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="small" weight="bold" color="neutral-content" alignment="center middle">
+              What happens next?
+            </text>
+            <vstack width={'100%'} gap="small" alignment="center middle">
+              {scene.choices.map((choice: any, index: number) => (
+                <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
+                  <text size="small" color="accent" weight="bold">
+                    [{index + 1}]
+                  </text>
+                  <text size="small" color="neutral-content-weak" wrap>
+                    {choice.text.length > 80 
+                      ? choice.text.substring(0, 80) + '...' 
+                      : choice.text}
+                  </text>
+                </hstack>
+              ))}
+            </vstack>
+          </vstack>
+        )}
+        
+        {/* Ending Message */}
+        {isEnding && (
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="medium" weight="bold" color="accent" alignment="center middle">
+              🎭 Story Complete!
+            </text>
+            <text size="small" color="neutral-content-weak" alignment="center middle">
+              This adventure has reached its conclusion
+            </text>
+          </vstack>
+        )}
+        
+        {/* Enter Button */}
+        <button appearance="primary" onPress={mount}>
+          {isEnding ? 'View Full Story' : 'Continue the Adventure'}
+        </button>
+      </vstack>
+    );
+  } else {
+    // No game data - show default interface
+    return (
+      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
+        <text size="xxlarge" weight="bold" alignment="center middle">
+          Choose Your Own Chaos
+        </text>
+        <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
+          Let the chaos begin!
+        </text>
+        <button appearance="primary" onPress={mount}>
+          Enter
+        </button>
+      </vstack>
+    );
+  }
 };
 
 // Create the form at the root level for menu actions
