@@ -174,8 +174,8 @@ body::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 128px;
-    height: 128px;
+    width: 64px;
+    height: 64px;
 }
 
 .bolt-logo-link:hover {
@@ -1413,13 +1413,13 @@ body::after {
     .bolt-logo-link {
         bottom: var(--spacing-md);
         right: var(--spacing-md);
-        width: 40px;
-        height: 40px;
+        width: 64px;
+        height: 64px;
     }
     
     .bolt-logo {
-        width: 28px;
-        height: 28px;
+        width: 64px;
+        height: 64px;
     }
     
     .game-info {
