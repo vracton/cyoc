@@ -778,7 +778,7 @@ Devvit.addMenuItem({
   },
 });
 
-// Add custom post type - this renders the interactive content
+// Add custom post type - this renders the interactive conten
 Devvit.addCustomPostType({
   name: 'Chaos Game',
   height: 'tall',
