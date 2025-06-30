@@ -24,8 +24,8 @@ function calculateChoiceChaosLevel(chaosVotes: ChaosVotes): number {
   const totalVotes = chaosVotes.mild.length + chaosVotes.wild.length + chaosVotes.insane.length;
   if (totalVotes === 0) return 0;
   
-  // Weight the votes: mild = 1, wild = 2, insane = 3
-  const weightedSum = (chaosVotes.mild.length * 1) + (chaosVotes.wild.length * 2) + (chaosVotes.insane.length * 3);
+  // Weight the votes: mild = 3, wild = 6, insane = 10 (on 0-10 scale)
+  const weightedSum = (chaosVotes.mild.length * 3) + (chaosVotes.wild.length * 6) + (chaosVotes.insane.length * 10);
   return Math.round((weightedSum / totalVotes) * 10) / 10; // Round to 1 decimal place
 }
 
@@ -33,8 +33,8 @@ function calculateUserGlobalChaosLevel(profile: UserChaosProfile): number {
   const total = profile.chaosContributions.mild + profile.chaosContributions.wild + profile.chaosContributions.insane;
   if (total === 0) return 0;
   
-  // Weight the contributions: mild = 1, wild = 2, insane = 3
-  const weightedSum = (profile.chaosContributions.mild * 1) + (profile.chaosContributions.wild * 2) + (profile.chaosContributions.insane * 3);
+  // Weight the contributions: mild = 3, wild = 6, insane = 10 (on 0-10 scale)
+  const weightedSum = (profile.chaosContributions.mild * 3) + (profile.chaosContributions.wild * 6) + (profile.chaosContributions.insane * 10);
   return Math.round((weightedSum / total) * 10) / 10; // Round to 1 decimal place
 }
 

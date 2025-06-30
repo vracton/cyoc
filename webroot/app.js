@@ -347,15 +347,15 @@ function displayLeaderboard() {
       <div class="legend-items">
         <div class="legend-item">
           <span class="legend-emoji">🥴</span>
-          <span class="legend-text">MILD CHAOS (1.0-1.4)</span>
+          <span class="legend-text">MILD CHAOS (3.0-4.9)</span>
         </div>
         <div class="legend-item">
           <span class="legend-emoji">🤯</span>
-          <span class="legend-text">WILD CHAOS (1.5-2.4)</span>
+          <span class="legend-text">WILD CHAOS (5.0-7.9)</span>
         </div>
         <div class="legend-item">
           <span class="legend-emoji">🤡</span>
-          <span class="legend-text">INSANE CHAOS (2.5-3.0)</span>
+          <span class="legend-text">INSANE CHAOS (8.0-10.0)</span>
         </div>
       </div>
     </div>
@@ -452,8 +452,8 @@ function updateUserProfile() {
 }
 
 function getChaosEmoji(chaosLevel) {
-  if (chaosLevel < 1.5) return '🥴';
-  if (chaosLevel < 2.5) return '🤯';
+  if (chaosLevel < 5.0) return '🥴';
+  if (chaosLevel < 8.0) return '🤯';
   return '🤡';
 }
 
@@ -473,14 +473,14 @@ function createHistoryChaosVoting(historyIndex, chaosVotes, chaosLevel) {
   
   const meterLabel = document.createElement('span');
   meterLabel.className = 'chaos-meter-label';
-  meterLabel.textContent = `CHAOS RATING: ${chaosLevel ? chaosLevel.toFixed(1) : '0.0'}`;
+  meterLabel.textContent = `CHAOS RATING: ${chaosLevel ? chaosLevel.toFixed(1) : '0.0'}/10`;
   
   const meterBar = document.createElement('div');
   meterBar.className = 'chaos-meter-bar';
   
   const meterFill = document.createElement('div');
   meterFill.className = 'chaos-meter-fill';
-  const fillPercentage = chaosLevel ? Math.min(chaosLevel * 33.33, 100) : 0;
+  const fillPercentage = chaosLevel ? Math.min(chaosLevel * 10, 100) : 0;
   meterFill.style.width = `${fillPercentage}%`;
   
   meterBar.appendChild(meterFill);
@@ -608,7 +608,7 @@ function updateStoryHistory() {
       <div class="choice-text">> ${entry.choiceText}</div>
       <div class="choice-meta">
         <span class="choice-user">— u/${username}</span>
-        <span class="choice-chaos">CHAOS: ${chaosLevel.toFixed(1)} ${chaosEmoji}</span>
+        <span class="choice-chaos">CHAOS: ${chaosLevel.toFixed(1)}/10 ${chaosEmoji}</span>
         <span class="choice-time">[${timestamp}]</span>
       </div>
     `;
