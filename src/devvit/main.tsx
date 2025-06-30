@@ -64,22 +64,172 @@ const formConfig = {
   cancelLabel: 'Cancel'
 };
 
-// Preview component for posts in the feed
-export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
-  const displayText = props.text || 'Choose Your Own Chaos - Interactive Story';
+// Enhanced Preview component that shows story content
+export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, context) => {
+  const { postId, redis } = context;
+  
+  // We'll need to fetch the game data to show in preview
+  // This is a simplified version - in practice you might want to cache this
+  const [gameData, setGameData] = Devvit.useState<any>(null);
+  const [loading, setLoading] = Devvit.useState(true);
+  
+  // Fetch game data when component mounts
+  Devvit.useAsync(async () => {
+    if (!postId) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      // Get game ID from post
+      const gameId = await redis.get(`post_game:${postId}`);
+      if (!gameId) {
+        setLoading(false);
+        return;
+      }
+      
+      // Get game data
+      const gameResult = await getChaosGame(gameId, { redis });
+      if (gameResult.status === 'success') {
+        setGameData(gameResult.game);
+      }
+    } catch (error) {
+      console.error('Error loading game data for preview:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+  
+  if (loading) {
+    return (
+      <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+          <text size="large" weight="bold" color="neutral-content" alignment="center middle">
+            🎲 Choose Your Own Chaos
+          </text>
+          <text size="medium" color="neutral-content-weak" alignment="center middle">
+            Loading story...
+          </text>
+        </vstack>
+      </zstack>
+    );
+  }
+  
+  if (!gameData) {
+    // No game data - show create prompt
+    return (
+      <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+          <text size="xxlarge" weight="bold" alignment="center middle" wrap>
+            🎲 Choose Your Own Chaos
+          </text>
+          <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
+            Interactive storytelling awaits
+          </text>
+          <text size="small" color="accent" alignment="center middle" wrap>
+            Click to create or play stories
+          </text>
+        </vstack>
+      </zstack>
+    );
+  }
+  
+  // Show current story state
+  const scene = gameData.currentScene;
+  const isEnding = scene.isEnding;
+  const storyProgress = gameData.storyHistory.length;
   
   return (
-    <zstack width={'100%'} height={'100%'} alignment="center middle">
-      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
-        <text size="xxlarge" weight="bold" alignment="center middle" wrap>
-          🎲 Choose Your Own Chaos
-        </text>
-        <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-          {displayText}
-        </text>
-        <text size="small" color="neutral-content-weak" alignment="center middle" wrap>
-          Click to play interactive story
-        </text>
+    <zstack width={'100%'} height={'100%'} alignment="top start">
+      <vstack width={'100%'} height={'100%'} gap="small" padding="medium">
+        {/* Header */}
+        <hstack width={'100%'} alignment="space-between middle">
+          <text size="large" weight="bold" color="accent" wrap>
+            🎲 {gameData.title}
+          </text>
+          <text size="small" color="neutral-content-weak">
+            Scene {storyProgress + 1}
+          </text>
+        </hstack>
+        
+        {/* Story Status */}
+        <hstack width={'100%'} gap="small" alignment="start middle">
+          <text size="small" color="neutral-content-weak">
+            Chaos Level {gameData.chaosLevel}/5
+          </text>
+          <text size="small" color="neutral-content-weak">
+            •
+          </text>
+          <text size="small" color="neutral-content-weak">
+            {storyProgress} choices made
+          </text>
+          {isEnding && (
+            <>
+              <text size="small" color="neutral-content-weak">•</text>
+              <text size="small" color="accent">ENDING</text>
+            </>
+          )}
+        </hstack>
+        
+        {/* Current Scene */}
+        <vstack width={'100%'} gap="small">
+          <text size="medium" weight="bold" color="neutral-content" wrap>
+            {scene.title}
+          </text>
+          <text size="small" color="neutral-content-weak" wrap>
+            {scene.description.length > 150 
+              ? scene.description.substring(0, 150) + '...' 
+              : scene.description}
+          </text>
+        </vstack>
+        
+        {/* Choices Preview */}
+        {!isEnding && scene.choices && scene.choices.length > 0 && (
+          <vstack width={'100%'} gap="small">
+            <text size="small" weight="bold" color="neutral-content">
+              What happens next?
+            </text>
+            <vstack width={'100%'} gap="small">
+              {scene.choices.slice(0, 2).map((choice: any, index: number) => (
+                <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
+                  <text size="small" color="accent" weight="bold">
+                    [{index + 1}]
+                  </text>
+                  <text size="small" color="neutral-content-weak" wrap>
+                    {choice.text.length > 60 
+                      ? choice.text.substring(0, 60) + '...' 
+                      : choice.text}
+                  </text>
+                </hstack>
+              ))}
+              {scene.choices.length > 2 && (
+                <text size="small" color="neutral-content-weak" style="italic">
+                  +{scene.choices.length - 2} more choices...
+                </text>
+              )}
+            </vstack>
+          </vstack>
+        )}
+        
+        {/* Ending Message */}
+        {isEnding && (
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="medium" weight="bold" color="accent">
+              🎭 Story Complete!
+            </text>
+            <text size="small" color="neutral-content-weak" alignment="center middle">
+              This adventure has reached its conclusion
+            </text>
+          </vstack>
+        )}
+        
+        {/* Call to Action */}
+        <spacer size="small" />
+        <hstack width={'100%'} alignment="center middle">
+          <text size="small" color="accent" weight="bold">
+            {isEnding ? 'View Full Story' : 'Continue the Adventure'} →
+          </text>
+        </hstack>
       </vstack>
     </zstack>
   );
@@ -402,7 +552,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
     post = await reddit.submitPost({
       title: values.title as string,
       subredditName: subreddit.name,
-      preview: <Preview text={`${values.title as string}`} />,
+      preview: <Preview postId={''} />, // We'll update this after we get the post ID
       runAs: 'USER',
       userGeneratedContent: { text: values.title as string }
     });
@@ -456,7 +606,7 @@ Devvit.addMenuItem({
       post = await reddit.submitPost({
         title: 'Choose Your Own Chaos - Interactive Stories',
         subredditName: subreddit.name,
-        preview: <Preview text="Ready to create your chaos story!" />,
+        preview: <Preview />,
       });
       
       ui.showToast({ text: 'Empty chaos game post created!' });
