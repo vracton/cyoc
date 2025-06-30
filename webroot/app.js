@@ -37,6 +37,7 @@ function initializeElements() {
     sceneTitle: document.getElementById('sceneTitle'),
     sceneDescription: document.getElementById('sceneDescription'),
     choicesContainer: document.getElementById('choices'),
+    storyHistoryContainer: document.getElementById('story-history'),
     endingScreen: document.getElementById('ending')
   };
 }
@@ -248,10 +249,18 @@ function updateGameDisplay() {
   }
   
   if (elements.gameInfo) {
-    elements.gameInfo.textContent = `Chaos Level: ${game.chaosLevel}/5 | Scene: ${scene.id}`;
+    const createdBy = game.createdByUsername || 'Unknown';
+    elements.gameInfo.innerHTML = `
+      <span>Chaos Level: ${game.chaosLevel}/5</span>
+      <span>Created by: u/${createdBy}</span>
+      <span>Scene: ${scene.id}</span>
+    `;
   }
   
-  // Update scene info
+  // Update story history
+  updateStoryHistory();
+  
+  // Update current scene info
   if (elements.sceneTitle) {
     elements.sceneTitle.textContent = scene.title;
   }
@@ -262,6 +271,52 @@ function updateGameDisplay() {
   
   // Update choices
   updateChoicesDisplay();
+}
+
+function updateStoryHistory() {
+  if (!elements.storyHistoryContainer || !gameState.currentGame) return;
+  
+  const game = gameState.currentGame;
+  elements.storyHistoryContainer.innerHTML = '';
+  
+  if (game.storyHistory.length === 0) {
+    elements.storyHistoryContainer.innerHTML = '<p class="no-history">This is the beginning of your story...</p>';
+    return;
+  }
+  
+  // Create story history display
+  const historyTitle = document.createElement('h3');
+  historyTitle.textContent = 'Story So Far';
+  historyTitle.className = 'history-title';
+  elements.storyHistoryContainer.appendChild(historyTitle);
+  
+  game.storyHistory.forEach((entry, index) => {
+    const historyItem = document.createElement('div');
+    historyItem.className = 'history-item';
+    
+    const sceneInfo = document.createElement('div');
+    sceneInfo.className = 'history-scene';
+    sceneInfo.innerHTML = `
+      <h4>${entry.sceneTitle}</h4>
+      <p>${entry.sceneDescription}</p>
+    `;
+    
+    const choiceInfo = document.createElement('div');
+    choiceInfo.className = 'history-choice';
+    const username = entry.chosenByUsername || 'Unknown User';
+    const timestamp = new Date(entry.timestamp).toLocaleString();
+    choiceInfo.innerHTML = `
+      <div class="choice-text">"${entry.choiceText}"</div>
+      <div class="choice-meta">
+        <span class="choice-user">— u/${username}</span>
+        <span class="choice-time">${timestamp}</span>
+      </div>
+    `;
+    
+    historyItem.appendChild(sceneInfo);
+    historyItem.appendChild(choiceInfo);
+    elements.storyHistoryContainer.appendChild(historyItem);
+  });
 }
 
 function updateChoicesDisplay() {
@@ -275,11 +330,18 @@ function updateChoicesDisplay() {
     elements.choicesContainer.innerHTML = `
       <div class="ending-message">
         <h3>The End</h3>
-        <p>Thank you for playing!</p>
+        <p>Thank you for playing this collaborative story!</p>
+        <p>The story was shaped by the choices of ${gameState.currentGame.storyHistory.length} different players.</p>
       </div>
     `;
     return;
   }
+  
+  // Add choices title
+  const choicesTitle = document.createElement('h3');
+  choicesTitle.textContent = 'What happens next?';
+  choicesTitle.className = 'choices-title';
+  elements.choicesContainer.appendChild(choicesTitle);
   
   // Create choice buttons
   scene.choices.forEach((choice, index) => {

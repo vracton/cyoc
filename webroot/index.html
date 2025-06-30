@@ -11,7 +11,7 @@
         <div id="loading" class="screen">
             <div class="loading-content">
                 <h1>Choose Your Own Chaos</h1>
-                <p>Loading your interactive story...</p>
+                <p class="loading-message">Loading your interactive story...</p>
                 <div class="spinner"></div>
             </div>
         </div>
@@ -20,8 +20,8 @@
             <div class="menu-content">
                 <h1>Choose Your Own Chaos</h1>
                 <p>Create and play interactive stories where your choices shape the narrative!</p>
-                <button id="createStoryBtn" class="primary-btn">Create New Chaos Story</button>
-                <div id="status" class="status-message"></div>
+                <button id="create-story-btn" class="primary-btn">Create New Chaos Story</button>
+                <div id="message" class="status-message"></div>
             </div>
         </div>
 
@@ -29,25 +29,26 @@
             <div class="game-content">
                 <div class="game-header">
                     <h1 id="gameTitle"></h1>
-                    <div class="game-info">
-                        <span id="chaosLevel"></span>
-                        <span id="sceneId"></span>
+                    <div id="game-info" class="game-info">
+                        <!-- Game info will be populated dynamically -->
                     </div>
                 </div>
                 
-                <div class="scene-content">
-                    <h2 id="sceneTitle"></h2>
-                    <p id="sceneDescription"></p>
+                <!-- Story History Section -->
+                <div id="story-history" class="story-history">
+                    <!-- Story history will be populated dynamically -->
                 </div>
+                
+                <!-- Current Scene Section -->
+                <div class="current-scene">
+                    <div class="scene-content">
+                        <h2 id="sceneTitle"></h2>
+                        <p id="sceneDescription"></p>
+                    </div>
 
-                <div id="choices" class="choices-container">
-                    <!-- Choices will be populated dynamically -->
-                </div>
-
-                <div id="ending" class="ending-content hidden">
-                    <h2>The End</h2>
-                    <p>Thank you for playing!</p>
-                    <button id="backToMenuBtn" class="secondary-btn">Back to Menu</button>
+                    <div id="choices" class="choices-container">
+                        <!-- Choices will be populated dynamically -->
+                    </div>
                 </div>
 
                 <button id="backBtn" class="back-btn">← Back to Menu</button>

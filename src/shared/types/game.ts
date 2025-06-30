@@ -16,6 +16,17 @@ export interface GameScene {
   isEnding?: boolean;
 }
 
+export interface StoryHistoryEntry {
+  sceneId: string;
+  sceneTitle: string;
+  sceneDescription: string;
+  choiceId: string;
+  choiceText: string;
+  timestamp: number;
+  chosenBy: string;
+  chosenByUsername?: string; // Reddit username for display
+}
+
 export interface GameState {
   currentSceneId: string;
   visitedScenes: string[];
@@ -33,14 +44,9 @@ export interface ChaosGame {
   chaosLevel: number;
   createdAt: number;
   createdBy: string;
+  createdByUsername?: string; // Reddit username for display
   currentScene: GameScene;
-  storyHistory: Array<{
-    sceneId: string;
-    choiceId: string;
-    choiceText: string;
-    timestamp: number;
-    chosenBy: string;
-  }>;
+  storyHistory: StoryHistoryEntry[];
 }
 
 export type ChaosLevel = 1 | 2 | 3 | 4 | 5;

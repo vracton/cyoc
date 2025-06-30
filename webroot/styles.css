@@ -119,6 +119,7 @@ body {
     cursor: pointer;
     text-decoration: underline;
     padding: 8px;
+    z-index: 100;
 }
 
 .back-btn:hover {
@@ -145,9 +146,10 @@ body {
 
 /* Game Screen */
 .game-content {
-    max-width: 800px;
+    max-width: 900px;
     width: 100%;
     padding: 20px;
+    padding-top: 60px; /* Account for back button */
 }
 
 .game-header {
@@ -163,18 +165,92 @@ body {
 .game-info {
     color: #9ca3af;
     font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .game-info span {
-    margin: 0 10px;
+    margin: 0 5px;
 }
 
-.scene-content {
-    background-color: #1f2937;
-    padding: 2rem;
-    border-radius: 12px;
+/* Story History */
+.story-history {
     margin-bottom: 2rem;
+}
+
+.history-title {
+    color: #60a5fa;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.no-history {
+    text-align: center;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 1rem;
+}
+
+.history-item {
+    background-color: #1f2937;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+    border-left: 4px solid #374151;
+}
+
+.history-scene h4 {
+    color: #60a5fa;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.history-scene p {
+    color: #d1d5db;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.history-choice {
+    border-top: 1px solid #374151;
+    padding-top: 1rem;
+}
+
+.choice-text {
+    color: #fbbf24;
+    font-weight: 600;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+}
+
+.choice-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.choice-user {
+    color: #34d399;
+    font-weight: 500;
+}
+
+.choice-time {
+    color: #6b7280;
+}
+
+/* Current Scene */
+.current-scene {
+    background-color: #1f2937;
+    border-radius: 12px;
+    padding: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid #374151;
 }
 
 .scene-content h2 {
@@ -187,20 +263,22 @@ body {
     font-size: 1.1rem;
     line-height: 1.7;
     color: #d1d5db;
+    margin-bottom: 2rem;
 }
 
 /* Choices */
 .choices-container {
-    margin-bottom: 2rem;
+    margin-top: 2rem;
 }
 
-.choices-container h3 {
+.choices-title {
     font-size: 1.2rem;
     margin-bottom: 1rem;
     color: #fff;
+    text-align: center;
 }
 
-.choice-btn {
+.choice-button {
     width: 100%;
     text-align: left;
     padding: 16px 20px;
@@ -215,46 +293,47 @@ body {
     line-height: 1.5;
 }
 
-.choice-btn:hover {
+.choice-button:hover:not(:disabled) {
     background-color: #4b5563;
     border-color: #60a5fa;
+    transform: translateY(-1px);
 }
 
-.choice-btn:disabled {
+.choice-button:disabled {
     background-color: #1f2937;
     cursor: not-allowed;
     opacity: 0.6;
 }
 
-.choice-btn .choice-number {
+.choice-button .choice-number {
     color: #60a5fa;
     font-weight: bold;
     margin-right: 8px;
 }
 
-.choice-btn .processing {
+.choice-button .loading-text {
     color: #9ca3af;
     margin-left: 8px;
 }
 
 /* Ending */
-.ending-content {
+.ending-message {
     text-align: center;
-    background-color: #1f2937;
+    background-color: #065f46;
     padding: 2rem;
     border-radius: 12px;
-    margin-bottom: 2rem;
+    margin-top: 2rem;
 }
 
-.ending-content h2 {
+.ending-message h3 {
     color: #10b981;
     font-size: 2rem;
     margin-bottom: 1rem;
 }
 
-.ending-content p {
-    color: #9ca3af;
-    margin-bottom: 2rem;
+.ending-message p {
+    color: #d1fae5;
+    margin-bottom: 1rem;
 }
 
 /* Responsive Design */
@@ -274,13 +353,15 @@ body {
     
     .game-content {
         padding: 15px;
+        padding-top: 60px;
     }
     
-    .scene-content {
+    .scene-content,
+    .current-scene {
         padding: 1.5rem;
     }
     
-    .choice-btn {
+    .choice-button {
         padding: 14px 16px;
         font-size: 0.95rem;
     }
@@ -289,5 +370,20 @@ body {
         top: 15px;
         left: 15px;
         font-size: 0.9rem;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .choice-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .history-item {
+        padding: 1rem;
     }
 }

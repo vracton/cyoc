@@ -11,7 +11,7 @@ Devvit.configure({
 
 // Message types for communication between Devvit and web view
 export type DevvitMessage =
-  | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string; game?: any } }
+  | { type: 'initialData'; data: { postId: string; userId?: string; username?: string; gameId?: string; game?: any } }
   | { type: 'gameCreated'; data: { gameId: string; game: any } }
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
   | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
@@ -83,7 +83,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = (props) => {
 
 // Main App Component with Web View
 const App: Devvit.BlockComponent = (context) => {
-  const { postId, userId, redis } = context;
+  const { postId, userId, reddit, redis } = context;
 
   const { mount } = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
@@ -91,6 +91,17 @@ const App: Devvit.BlockComponent = (context) => {
       console.log('Received message from web view:', message);
 
       if (message.type === 'webViewReady') {
+        // Get current user info
+        let username = undefined;
+        try {
+          if (userId) {
+            const user = await reddit.getUserById(userId);
+            username = user.username;
+          }
+        } catch (error) {
+          console.error('Error getting username:', error);
+        }
+
         // Check if there's already a game associated with this post
         let gameId = null;
         let gameData = null;
@@ -115,7 +126,7 @@ const App: Devvit.BlockComponent = (context) => {
           }
         }
 
-        console.log('Sending initial data to web view:', { postId, userId, gameId, hasGameData: !!gameData });
+        console.log('Sending initial data to web view:', { postId, userId, username, gameId, hasGameData: !!gameData });
 
         // Send initial data to web view, including complete game data if available
         webView.postMessage({
@@ -123,6 +134,7 @@ const App: Devvit.BlockComponent = (context) => {
           data: {
             postId: postId || '',
             userId: userId,
+            username: username,
             gameId: gameId,
             game: gameData // Send the complete game data
           }
@@ -147,7 +159,19 @@ const App: Devvit.BlockComponent = (context) => {
         // Handle choice making
         try {
           console.log('Processing choice:', message.data);
-          const result = await makeChaosChoice(message.data, { redis, userId });
+          
+          // Get current user info for the choice
+          let username = undefined;
+          try {
+            if (userId) {
+              const user = await reddit.getUserById(userId);
+              username = user.username;
+            }
+          } catch (error) {
+            console.error('Error getting username for choice:', error);
+          }
+
+          const result = await makeChaosChoice(message.data, { redis, userId, username });
           console.log('Choice result:', result);
           
           webView.postMessage({
@@ -164,7 +188,7 @@ const App: Devvit.BlockComponent = (context) => {
       } else if (message.type === 'showCreateForm') {
         // Create a form specifically for this web view context
         const createFormForWebView = Devvit.createForm(formConfig, async (event, formContext) => {
-          const { ui, redis: formRedis } = formContext;
+          const { ui, redis: formRedis, reddit: formReddit } = formContext;
           const values = event.values;
 
           if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -175,12 +199,23 @@ const App: Devvit.BlockComponent = (context) => {
           try {
             console.log('Creating game with values:', values);
             
+            // Get current user info
+            let username = undefined;
+            try {
+              if (userId) {
+                const user = await formReddit.getUserById(userId);
+                username = user.username;
+              }
+            } catch (error) {
+              console.error('Error getting username for game creation:', error);
+            }
+            
             // Create the chaos game using server-side function
             const result = await createChaosGame({
               title: values.title as string,
               initialPrompt: values.initialPrompt as string,
               chaosLevel: parseInt(values.chaosLevel as string)
-            }, { redis: formRedis, userId });
+            }, { redis: formRedis, userId, username });
 
             console.log('Game creation result:', result);
 
@@ -271,12 +306,23 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
   try {
     console.log('Creating game via menu action with values:', values);
     
+    // Get current user info
+    let username = undefined;
+    try {
+      if (userId) {
+        const user = await reddit.getUserById(userId);
+        username = user.username;
+      }
+    } catch (error) {
+      console.error('Error getting username for menu action:', error);
+    }
+    
     // Create the chaos game using server-side function
     const result = await createChaosGame({
       title: values.title as string,
       initialPrompt: values.initialPrompt as string,
       chaosLevel: parseInt(values.chaosLevel as string)
-    }, { redis, userId });
+    }, { redis, userId, username });
 
     console.log('Menu action game creation result:', result);
 

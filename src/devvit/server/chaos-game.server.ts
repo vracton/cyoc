@@ -1,6 +1,6 @@
 import { RedisClient } from '@devvit/redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ChaosGame, GameScene, ChaosLevel } from '../../shared/types/game';
+import { ChaosGame, GameScene, ChaosLevel, StoryHistoryEntry } from '../../shared/types/game';
 
 // Server-side functions for chaos game management
 const getChaosGameKey = (gameId: string) => `chaos_game:${gameId}` as const;
@@ -132,13 +132,7 @@ function createFallbackScene(title: string, initialPrompt: string, chaosLevel: C
 }
 
 async function generateNextScene(
-  storyHistory: Array<{
-    sceneId: string;
-    choiceId: string;
-    choiceText: string;
-    timestamp: number;
-    chosenBy: string;
-  }>,
+  storyHistory: StoryHistoryEntry[],
   previousScene: GameScene,
   chosenChoice: string,
   chaosLevel: ChaosLevel,
@@ -147,7 +141,7 @@ async function generateNextScene(
   const chaosDescription = getChaosLevelDescription(chaosLevel);
   
   const historyText = storyHistory.map((entry, index) => 
-    `${index + 1}. ${entry.choiceText}`
+    `${index + 1}. ${entry.choiceText} (chosen by ${entry.chosenByUsername || 'unknown user'})`
   ).join('\n');
 
   const prompt = `
@@ -278,10 +272,10 @@ function createFallbackNextScene(chosenChoice: string, sceneNumber: number, chao
 // Main server-side functions exported for use in Devvit
 export async function createChaosGame(
   data: { title: string; initialPrompt: string; chaosLevel: number },
-  context: { redis: RedisClient; userId?: string }
+  context: { redis: RedisClient; userId?: string; username?: string }
 ): Promise<{ status: 'success'; gameId: string } | { status: 'error'; message: string }> {
   try {
-    console.log('createChaosGame called with:', data, 'userId:', context.userId);
+    console.log('createChaosGame called with:', data, 'userId:', context.userId, 'username:', context.username);
     
     if (!context.userId) {
       return { status: 'error', message: 'User ID required' };
@@ -316,6 +310,7 @@ export async function createChaosGame(
       chaosLevel: data.chaosLevel,
       createdAt: Date.now(),
       createdBy: context.userId,
+      createdByUsername: context.username,
       currentScene: initialScene,
       storyHistory: []
     };
@@ -381,7 +376,7 @@ export async function getChaosGame(
 
 export async function makeChaosChoice(
   data: { gameId: string; choiceId: string },
-  context: { redis: RedisClient; userId?: string }
+  context: { redis: RedisClient; userId?: string; username?: string }
 ): Promise<{ status: 'success'; scene: GameScene; game: ChaosGame } | { status: 'error'; message: string }> {
   try {
     if (!context.userId) {
@@ -401,13 +396,16 @@ export async function makeChaosChoice(
       return { status: 'error', message: 'Invalid choice' };
     }
 
-    // Add choice to story history
-    const historyEntry = {
+    // Add choice to story history with complete scene information
+    const historyEntry: StoryHistoryEntry = {
       sceneId: game.currentScene.id,
+      sceneTitle: game.currentScene.title,
+      sceneDescription: game.currentScene.description,
       choiceId: data.choiceId,
       choiceText: chosenChoice.text,
       timestamp: Date.now(),
-      chosenBy: context.userId
+      chosenBy: context.userId,
+      chosenByUsername: context.username
     };
 
     game.storyHistory.push(historyEntry);
