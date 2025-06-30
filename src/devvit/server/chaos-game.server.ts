@@ -121,6 +121,33 @@ function findNodeByPath(tree: StoryNode, pathIds: string[]): StoryNode | null {
   return null;
 }
 
+function validateAndRepairGameState(game: ChaosGame): { isValid: boolean; repairedGame?: ChaosGame } {
+  // Check if the game has the required structure
+  if (!game.storyTree || !game.activePathIds || !Array.isArray(game.activePathIds)) {
+    console.log('Game missing story tree or active path IDs, needs repair');
+    return { isValid: false };
+  }
+
+  // Try to find the active leaf node
+  const activeLeaf = findNodeByPath(game.storyTree, game.activePathIds);
+  
+  if (!activeLeaf) {
+    console.log('Active path is corrupted, repairing game state');
+    
+    // Create a repaired game state
+    const repairedGame: ChaosGame = {
+      ...game,
+      storyTree: createInitialStoryTree(game.currentScene),
+      activePathIds: ['root'],
+      storyHistory: []
+    };
+    
+    return { isValid: false, repairedGame };
+  }
+  
+  return { isValid: true };
+}
+
 async function generateInitialScene(
   initialPrompt: string,
   chaosLevel: ChaosLevel,
@@ -497,7 +524,7 @@ export async function getChaosGame(
 export async function makeChaosChoice(
   data: { gameId: string; choiceId: string },
   context: { redis: RedisClient; userId?: string }
-): Promise<{ status: 'success'; scene: GameScene; game: ChaosGame } | { status: 'error'; message: string }> {
+): Promise<{ status: 'success'; scene: GameScene; game: ChaosGame } | { status: 'error'; message: string; game?: ChaosGame; scene?: GameScene }> {
   try {
     if (!context.userId) {
       return { status: 'error', message: 'User ID required' };
@@ -508,7 +535,30 @@ export async function makeChaosChoice(
       return gameResult;
     }
 
-    const game = gameResult.game;
+    let game = gameResult.game;
+
+    // Validate and repair game state if necessary
+    const validation = validateAndRepairGameState(game);
+    if (!validation.isValid) {
+      console.log('Game state was corrupted, using repaired state');
+      
+      if (validation.repairedGame) {
+        game = validation.repairedGame;
+        
+        // Save the repaired game state
+        await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
+        
+        // Return the repaired game state to the client
+        return {
+          status: 'error',
+          message: 'Game state was corrupted and has been reset to the beginning. Please try again.',
+          game: game,
+          scene: game.currentScene
+        };
+      } else {
+        return { status: 'error', message: 'Game state is corrupted and could not be repaired' };
+      }
+    }
 
     // Find the chosen choice
     const chosenChoice = game.currentScene.choices.find(choice => choice.id === data.choiceId);

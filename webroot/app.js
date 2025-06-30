@@ -170,8 +170,19 @@ function handleChoiceResult(data) {
     updateGameDisplay();
     updateHistoryTree();
   } else {
-    gameState.message = `Error making choice: ${data.message}`;
-    updateMessage();
+    // Handle error case - check if we have game and scene data for recovery
+    if (data.game && data.scene) {
+      console.log('Received error with recovery data, updating game state');
+      gameState.currentGame = data.game;
+      gameState.currentGame.currentScene = data.scene;
+      gameState.message = data.message;
+      updateGameDisplay();
+      updateHistoryTree();
+      updateMessage();
+    } else {
+      gameState.message = `Error making choice: ${data.message}`;
+      updateMessage();
+    }
   }
 }
 
