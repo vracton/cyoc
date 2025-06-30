@@ -163,6 +163,9 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
           <text size="large" weight="bold" color="#00FFFF" wrap>
             {gameData.title}
           </text>
+          <text size="small" color="#666666">
+            •
+          </text>
           <text size="small" color="#FF00FF">
             Scene {storyProgress + 1}
           </text>
