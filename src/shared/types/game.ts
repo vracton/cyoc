@@ -9,9 +9,10 @@ export interface GameChoice {
 }
 
 export interface ChaosVotes {
-  mild: string[]; // Array of user IDs who voted mild (🥴)
-  wild: string[]; // Array of user IDs who voted wild (🤯)
-  insane: string[]; // Array of user IDs who voted insane (🤡)
+  boring: string[]; // Array of user IDs who voted boring (😐) - 0 points
+  mild: string[]; // Array of user IDs who voted mild (🥴) - 3 points
+  wild: string[]; // Array of user IDs who voted wild (🤯) - 6 points
+  insane: string[]; // Array of user IDs who voted insane (🤡) - 10 points
 }
 
 export interface GameScene {
@@ -50,6 +51,7 @@ export interface UserChaosProfile {
   username?: string;
   totalChaosVotes: number;
   chaosContributions: {
+    boring: number;
     mild: number;
     wild: number;
     insane: number;
@@ -72,7 +74,7 @@ export interface ChaosGame {
 
 export type ChaosLevel = 1 | 2 | 3 | 4 | 5;
 
-export type ChaosVoteType = 'mild' | 'wild' | 'insane';
+export type ChaosVoteType = 'boring' | 'mild' | 'wild' | 'insane';
 
 export interface CreateGameRequest {
   title: string;

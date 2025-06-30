@@ -878,7 +878,7 @@ body {
     min-width: 50px;
 }
 
-.chaos-vote-btn:hover {
+.chaos-vote-btn:hover:not(:disabled) {
     border-color: #00ff00;
     color: #00ff00;
     box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
@@ -889,6 +889,20 @@ body {
     color: #ffff00;
     background: rgba(255, 255, 0, 0.1);
     box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+}
+
+.chaos-vote-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #333;
+    color: #333;
+}
+
+.chaos-vote-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #333;
+    color: #333;
 }
 
 /* Ending */

@@ -223,6 +223,11 @@ function handleChaosVoteResult(data) {
     updateUserProfile();
   } else {
     console.error('Chaos vote failed:', data.message);
+    // Show error message to user
+    if (data.message === 'You cannot vote on your own choice') {
+      // Could show a toast or temporary message here
+      console.log('User tried to vote on their own choice - this is prevented');
+    }
   }
 }
 
@@ -325,6 +330,7 @@ function displayLeaderboard() {
             <span class="chaos-emoji">${chaosEmoji}</span>
           </div>
           <div class="vote-breakdown">
+            <span class="vote-stat">😐 ${user.chaosContributions.boring}</span>
             <span class="vote-stat">🥴 ${user.chaosContributions.mild}</span>
             <span class="vote-stat">🤯 ${user.chaosContributions.wild}</span>
             <span class="vote-stat">🤡 ${user.chaosContributions.insane}</span>
@@ -345,6 +351,10 @@ function displayLeaderboard() {
     <div class="leaderboard-legend">
       <h3>> CHAOS SCALE LEGEND</h3>
       <div class="legend-items">
+        <div class="legend-item">
+          <span class="legend-emoji">😐</span>
+          <span class="legend-text">BORING (0.0)</span>
+        </div>
         <div class="legend-item">
           <span class="legend-emoji">🥴</span>
           <span class="legend-text">MILD CHAOS (3.0-4.9)</span>
@@ -445,7 +455,7 @@ function updateUserProfile() {
   elements.userProfileContainer.innerHTML = `
     <div class="user-chaos-profile">
       <span class="status-badge chaos">CHAOS AGENT: u/${profile.username || 'UNKNOWN'}</span>
-      <span class="status-badge info">GLOBAL CHAOS: ${profile.globalChaosLevel.toFixed(1)} ${chaosEmoji}</span>
+      <span class="status-badge info">GLOBAL CHAOS: ${profile.globalChaosLevel.toFixed(1)}/10 ${chaosEmoji}</span>
       <span class="status-badge info">VOTES: ${profile.totalChaosVotes}</span>
     </div>
   `;
@@ -491,6 +501,7 @@ function createHistoryChaosVoting(historyIndex, chaosVotes, chaosLevel) {
   votingButtons.className = 'chaos-voting-buttons';
   
   const voteTypes = [
+    { type: 'boring', emoji: '😐', label: 'BORING' },
     { type: 'mild', emoji: '🥴', label: 'MILD' },
     { type: 'wild', emoji: '🤯', label: 'WILD' },
     { type: 'insane', emoji: '🤡', label: 'INSANE' }
@@ -509,9 +520,21 @@ function createHistoryChaosVoting(historyIndex, chaosVotes, chaosLevel) {
       button.classList.add('voted');
     }
     
+    // Check if this is the user's own choice (prevent self-voting)
+    const historyEntry = gameState.currentGame?.storyHistory[historyIndex];
+    const isOwnChoice = historyEntry && historyEntry.chosenBy === userId;
+    
+    if (isOwnChoice) {
+      button.disabled = true;
+      button.classList.add('disabled');
+      button.title = 'Cannot vote on your own choice';
+    }
+    
     button.addEventListener('click', (e) => {
       e.stopPropagation();
-      voteHistoryChaos(historyIndex, vote.type);
+      if (!isOwnChoice) {
+        voteHistoryChaos(historyIndex, vote.type);
+      }
     });
     
     votingButtons.appendChild(button);
@@ -614,7 +637,7 @@ function updateStoryHistory() {
     `;
     
     // Add chaos voting system for this history entry
-    const chaosVotes = entry.chaosVotes || { mild: [], wild: [], insane: [] };
+    const chaosVotes = entry.chaosVotes || { boring: [], mild: [], wild: [], insane: [] };
     const votingSystem = createHistoryChaosVoting(index, chaosVotes, chaosLevel);
     
     historyItem.appendChild(sceneInfo);

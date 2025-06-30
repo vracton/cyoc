@@ -21,20 +21,20 @@ function getChaosLevelDescription(level: ChaosLevel): string {
 }
 
 function calculateChoiceChaosLevel(chaosVotes: ChaosVotes): number {
-  const totalVotes = chaosVotes.mild.length + chaosVotes.wild.length + chaosVotes.insane.length;
+  const totalVotes = chaosVotes.boring.length + chaosVotes.mild.length + chaosVotes.wild.length + chaosVotes.insane.length;
   if (totalVotes === 0) return 0;
   
-  // Weight the votes: mild = 3, wild = 6, insane = 10 (on 0-10 scale)
-  const weightedSum = (chaosVotes.mild.length * 3) + (chaosVotes.wild.length * 6) + (chaosVotes.insane.length * 10);
+  // Weight the votes: boring = 0, mild = 3, wild = 6, insane = 10 (on 0-10 scale)
+  const weightedSum = (chaosVotes.boring.length * 0) + (chaosVotes.mild.length * 3) + (chaosVotes.wild.length * 6) + (chaosVotes.insane.length * 10);
   return Math.round((weightedSum / totalVotes) * 10) / 10; // Round to 1 decimal place
 }
 
 function calculateUserGlobalChaosLevel(profile: UserChaosProfile): number {
-  const total = profile.chaosContributions.mild + profile.chaosContributions.wild + profile.chaosContributions.insane;
+  const total = profile.chaosContributions.boring + profile.chaosContributions.mild + profile.chaosContributions.wild + profile.chaosContributions.insane;
   if (total === 0) return 0;
   
-  // Weight the contributions: mild = 3, wild = 6, insane = 10 (on 0-10 scale)
-  const weightedSum = (profile.chaosContributions.mild * 3) + (profile.chaosContributions.wild * 6) + (profile.chaosContributions.insane * 10);
+  // Weight the contributions: boring = 0, mild = 3, wild = 6, insane = 10 (on 0-10 scale)
+  const weightedSum = (profile.chaosContributions.boring * 0) + (profile.chaosContributions.mild * 3) + (profile.chaosContributions.wild * 6) + (profile.chaosContributions.insane * 10);
   return Math.round((weightedSum / total) * 10) / 10; // Round to 1 decimal place
 }
 
@@ -426,7 +426,7 @@ export async function makeChaosChoice(
       timestamp: Date.now(),
       chosenBy: context.userId,
       chosenByUsername: context.username,
-      chaosVotes: { mild: [], wild: [], insane: [] }, // Initialize empty voting
+      chaosVotes: { boring: [], mild: [], wild: [], insane: [] }, // Initialize empty voting with new boring option
       chaosLevel: 0 // Will be calculated as votes come in
     };
 
@@ -465,7 +465,7 @@ export async function voteOnHistoryChoice(
     }
 
     const voteType = data.voteType as ChaosVoteType;
-    if (!['mild', 'wild', 'insane'].includes(voteType)) {
+    if (!['boring', 'mild', 'wild', 'insane'].includes(voteType)) {
       return { status: 'error', message: 'Invalid vote type' };
     }
 
@@ -485,16 +485,23 @@ export async function voteOnHistoryChoice(
 
     const historyEntry = game.storyHistory[data.historyIndex];
 
+    // PREVENT SELF-VOTING: Check if the user is trying to vote on their own choice
+    if (historyEntry.chosenBy === context.userId) {
+      return { status: 'error', message: 'You cannot vote on your own choice' };
+    }
+
     // Initialize chaos votes if not present
     if (!historyEntry.chaosVotes) {
-      historyEntry.chaosVotes = { mild: [], wild: [], insane: [] };
+      historyEntry.chaosVotes = { boring: [], mild: [], wild: [], insane: [] };
     }
 
     console.log('Before vote removal:', JSON.stringify(historyEntry.chaosVotes));
 
     // Check if user has already voted and what type
     let previousVoteType: ChaosVoteType | null = null;
-    if (historyEntry.chaosVotes.mild.includes(context.userId)) {
+    if (historyEntry.chaosVotes.boring.includes(context.userId)) {
+      previousVoteType = 'boring';
+    } else if (historyEntry.chaosVotes.mild.includes(context.userId)) {
       previousVoteType = 'mild';
     } else if (historyEntry.chaosVotes.wild.includes(context.userId)) {
       previousVoteType = 'wild';
@@ -505,6 +512,7 @@ export async function voteOnHistoryChoice(
     console.log(`Previous vote type: ${previousVoteType}, New vote type: ${voteType}`);
 
     // Remove user's previous vote if any
+    historyEntry.chaosVotes.boring = historyEntry.chaosVotes.boring.filter(id => id !== context.userId);
     historyEntry.chaosVotes.mild = historyEntry.chaosVotes.mild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.wild = historyEntry.chaosVotes.wild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.insane = historyEntry.chaosVotes.insane.filter(id => id !== context.userId);
@@ -546,7 +554,7 @@ export async function voteOnHistoryChoice(
         userId: context.userId,
         username: context.username,
         totalChaosVotes: 0,
-        chaosContributions: { mild: 0, wild: 0, insane: 0 },
+        chaosContributions: { boring: 0, mild: 0, wild: 0, insane: 0 },
         globalChaosLevel: 0,
         lastUpdated: Date.now()
       };
@@ -584,7 +592,7 @@ export async function getUserChaosProfile(
       const newProfile: UserChaosProfile = {
         userId,
         totalChaosVotes: 0,
-        chaosContributions: { mild: 0, wild: 0, insane: 0 },
+        chaosContributions: { boring: 0, mild: 0, wild: 0, insane: 0 },
         globalChaosLevel: 0,
         lastUpdated: Date.now()
       };
@@ -594,6 +602,13 @@ export async function getUserChaosProfile(
     }
     
     const profile = JSON.parse(profileData);
+    
+    // Migrate old profiles that don't have the boring field
+    if (!profile.chaosContributions.hasOwnProperty('boring')) {
+      profile.chaosContributions.boring = 0;
+      await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(profile));
+    }
+    
     return { status: 'success', profile };
   } catch (error) {
     console.error('Error getting user chaos profile:', error);
@@ -636,7 +651,7 @@ async function updateUserChaosProfile(
       userId,
       username: context.username,
       totalChaosVotes: 0,
-      chaosContributions: { mild: 0, wild: 0, insane: 0 },
+      chaosContributions: { boring: 0, mild: 0, wild: 0, insane: 0 },
       globalChaosLevel: 0,
       lastUpdated: Date.now()
     };
