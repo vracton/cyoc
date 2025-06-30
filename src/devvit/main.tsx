@@ -138,7 +138,10 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Header */}
         <hstack width={'100%'} alignment="space-between middle">
           <text size="large" weight="bold" color="accent" wrap>
-            🎲 {gameData.title}
+            {gameData.title}
+          </text>
+          <text size="small" color="neutral-content-weak">
+            •
           </text>
           <text size="small" color="neutral-content-weak">
             Scene {storyProgress + 1}
