@@ -64,29 +64,22 @@ const formConfig = {
   cancelLabel: 'Cancel'
 };
 
-// Enhanced Preview component that shows story content with neon styling
+// Enhanced Preview component that shows story content
 export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, context) => {
   const { postId, redis } = context;
   
   if (!postId) {
-    // No post ID - show generic preview with neon styling
+    // No post ID - show generic preview
     return (
       <zstack width={'100%'} height={'100%'} alignment="center middle">
-        <image 
-          url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cfilter id='neon'%3E%3CfeGaussianBlur stdDeviation='3' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' fill='%23000' opacity='0.9'/%3E%3Ctext x='50' y='30' text-anchor='middle' fill='%2300FFFF' font-family='monospace' font-size='8' filter='url(%23neon)'%3ECHAOS%3C/text%3E%3Ctext x='50' y='50' text-anchor='middle' fill='%23FF00FF' font-family='monospace' font-size='12' filter='url(%23neon)'%3E🎲%3C/text%3E%3Ctext x='50' y='70' text-anchor='middle' fill='%2300FFFF' font-family='monospace' font-size='8' filter='url(%23neon)'%3EPROTOCOL%3C/text%3E%3C/svg%3E"
-          imageHeight={100}
-          imageWidth={100}
-          height="100px"
-          width="100px"
-        />
         <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-          <text size="xxlarge" weight="bold" alignment="center middle" wrap color="#00FFFF">
-            🎲 CHOOSE YOUR OWN CHAOS
+          <text size="xxlarge" weight="bold" alignment="center middle" wrap>
+            🎲 Choose Your Own Chaos
           </text>
-          <text size="medium" color="#FF00FF" alignment="center middle" wrap>
+          <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
             Interactive storytelling awaits
           </text>
-          <text size="small" color="#FFFF00" alignment="center middle" wrap>
+          <text size="small" color="accent" alignment="center middle" wrap>
             Click to create or play stories
           </text>
         </vstack>
@@ -117,24 +110,17 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
   });
 
   if (!gameData) {
-    // No game data or loading - show generic preview with neon styling
+    // No game data or loading - show generic preview
     return (
       <zstack width={'100%'} height={'100%'} alignment="center middle">
-        <image 
-          url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cfilter id='neon'%3E%3CfeGaussianBlur stdDeviation='3' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' fill='%23000' opacity='0.9'/%3E%3Ctext x='50' y='30' text-anchor='middle' fill='%2300FFFF' font-family='monospace' font-size='8' filter='url(%23neon)'%3ECHAOS%3C/text%3E%3Ctext x='50' y='50' text-anchor='middle' fill='%23FF00FF' font-family='monospace' font-size='12' filter='url(%23neon)'%3E🎲%3C/text%3E%3Ctext x='50' y='70' text-anchor='middle' fill='%2300FFFF' font-family='monospace' font-size='8' filter='url(%23neon)'%3EPROTOCOL%3C/text%3E%3C/svg%3E"
-          imageHeight={100}
-          imageWidth={100}
-          height="100px"
-          width="100px"
-        />
         <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-          <text size="xxlarge" weight="bold" alignment="center middle" wrap color="#00FFFF">
-            🎲 CHOOSE YOUR OWN CHAOS
+          <text size="xxlarge" weight="bold" alignment="center middle" wrap>
+            🎲 Choose Your Own Chaos
           </text>
-          <text size="medium" color="#FF00FF" alignment="center middle" wrap>
+          <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
             Interactive storytelling awaits
           </text>
-          <text size="small" color="#FFFF00" alignment="center middle" wrap>
+          <text size="small" color="accent" alignment="center middle" wrap>
             Click to create or play stories
           </text>
         </vstack>
@@ -148,54 +134,45 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
   
   return (
     <zstack width={'100%'} height={'100%'} alignment="top start">
-      {/* Dark background with neon border effect */}
-      <image 
-        url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Cdefs%3E%3Cfilter id='neon'%3E%3CfeGaussianBlur stdDeviation='2' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='400' height='300' fill='%23000' stroke='%2300FFFF' stroke-width='2' filter='url(%23neon)' opacity='0.9'/%3E%3C/svg%3E"
-        imageHeight={300}
-        imageWidth={400}
-        height="100%"
-        width="100%"
-        resizeMode="cover"
-      />
       <vstack width={'100%'} height={'100%'} gap="small" padding="medium">
         {/* Header */}
         <hstack width={'100%'} alignment="space-between middle">
-          <text size="large" weight="bold" color="#00FFFF" wrap>
+          <text size="large" weight="bold" color="accent" wrap>
             {gameData.title}
           </text>
-          <text size="small" color="#666666">
+          <text size="small" color="neutral-content-weak">
             •
           </text>
-          <text size="small" color="#FF00FF">
+          <text size="small" color="neutral-content-weak">
             Scene {storyProgress + 1}
           </text>
         </hstack>
         
         {/* Story Status */}
         <hstack width={'100%'} gap="small" alignment="start middle">
-          <text size="small" color="#FFFF00">
+          <text size="small" color="neutral-content-weak">
             Chaos Level {gameData.chaosLevel}/5
           </text>
-          <text size="small" color="#666666">
+          <text size="small" color="neutral-content-weak">
             •
           </text>
-          <text size="small" color="#FFFF00">
+          <text size="small" color="neutral-content-weak">
             {storyProgress} choices made
           </text>
           {isEnding && (
             <>
-              <text size="small" color="#666666">•</text>
-              <text size="small" color="#FF0080">ENDING</text>
+              <text size="small" color="neutral-content-weak">•</text>
+              <text size="small" color="accent">ENDING</text>
             </>
           )}
         </hstack>
         
         {/* Current Scene */}
         <vstack width={'100%'} gap="small">
-          <text size="medium" weight="bold" color="#00FFFF" wrap>
+          <text size="medium" weight="bold" color="neutral-content" wrap>
             {scene.title}
           </text>
-          <text size="small" color="#CCCCCC" wrap>
+          <text size="small" color="neutral-content-weak" wrap>
             {scene.description.length > 150 
               ? scene.description.substring(0, 150) + '...' 
               : scene.description}
@@ -205,16 +182,16 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Choices Preview */}
         {!isEnding && scene.choices && scene.choices.length > 0 && (
           <vstack width={'100%'} gap="small">
-            <text size="small" weight="bold" color="#FF00FF">
+            <text size="small" weight="bold" color="neutral-content">
               What happens next?
             </text>
             <vstack width={'100%'} gap="small">
               {scene.choices.slice(0, 2).map((choice: any, index: number) => (
                 <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
-                  <text size="small" color="#FFFF00" weight="bold">
+                  <text size="small" color="accent" weight="bold">
                     [{index + 1}]
                   </text>
-                  <text size="small" color="#CCCCCC" wrap>
+                  <text size="small" color="neutral-content-weak" wrap>
                     {choice.text.length > 60 
                       ? choice.text.substring(0, 60) + '...' 
                       : choice.text}
@@ -222,7 +199,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
                 </hstack>
               ))}
               {scene.choices.length > 2 && (
-                <text size="small" color="#666666" style="italic">
+                <text size="small" color="neutral-content-weak" style="italic">
                   +{scene.choices.length - 2} more choices...
                 </text>
               )}
@@ -233,10 +210,10 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Ending Message */}
         {isEnding && (
           <vstack width={'100%'} gap="small" alignment="center middle">
-            <text size="medium" weight="bold" color="#FF0080">
+            <text size="medium" weight="bold" color="accent">
               🎭 Story Complete!
             </text>
-            <text size="small" color="#CCCCCC" alignment="center middle">
+            <text size="small" color="neutral-content-weak" alignment="center middle">
               This adventure has reached its conclusion
             </text>
           </vstack>
@@ -245,7 +222,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Call to Action */}
         <spacer size="small" />
         <hstack width={'100%'} alignment="center middle">
-          <text size="small" color="#00FFFF" weight="bold">
+          <text size="small" color="accent" weight="bold">
             {isEnding ? 'View Full Story' : 'Continue the Chaos'} →
           </text>
         </hstack>
@@ -254,7 +231,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
   );
 };
 
-// Main App Component with Web View - Updated with neon styling
+// Main App Component with Web View - Updated to show story preview instead of simple "Enter" button
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, reddit, redis } = context;
 
@@ -537,134 +514,109 @@ const App: Devvit.BlockComponent = (context) => {
   });
 
   if (gameData) {
-    // Show story preview with current scene and choices - with neon styling
+    // Show story preview with current scene and choices
     const scene = gameData.currentScene;
     const isEnding = scene.isEnding;
     const storyProgress = gameData.storyHistory.length;
     
     return (
-      <zstack width={'100%'} height={'100%'} alignment="center middle">
-        {/* Dark background with neon border effect */}
-        <image 
-          url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Cdefs%3E%3Cfilter id='neon'%3E%3CfeGaussianBlur stdDeviation='3' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='400' height='600' fill='%23000' stroke='%2300FFFF' stroke-width='3' filter='url(%23neon)' opacity='0.95'/%3E%3C/svg%3E"
-          imageHeight={600}
-          imageWidth={400}
-          height="100%"
-          width="100%"
-          resizeMode="cover"
-        />
-        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-          {/* Header */}
-          <hstack width={'100%'} alignment="space-between middle">
-            <text size="large" weight="bold" color="#00FFFF" wrap>
-              {gameData.title}
-            </text>
-            <text size="small" color="#666666">
+      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+        {/* Header */}
+        <hstack width={'100%'} alignment="space-between middle">
+          <text size="large" weight="bold" color="accent" wrap>
+            🎲 {gameData.title}
+          </text>
+          <text size="small" color="neutral-content-weak">
+            Scene {storyProgress + 1}
+          </text>
+        </hstack>
+        
+        {/* Story Status */}
+        <hstack width={'100%'} gap="small" alignment="center middle">
+          <text size="small" color="neutral-content-weak">
+            Chaos Level {gameData.chaosLevel}/5
+          </text>
+          <text size="small" color="neutral-content-weak">
             •
           </text>
-            <text size="small" color="#FF00FF">
-              Scene {storyProgress + 1}
-            </text>
-          </hstack>
-          
-          {/* Story Status */}
-          <hstack width={'100%'} gap="small" alignment="center middle">
-            <text size="small" color="#FFFF00">
-              Chaos Level {gameData.chaosLevel}/5
-            </text>
-            <text size="small" color="#666666">
-              •
-            </text>
-            <text size="small" color="#FFFF00">
-              {storyProgress} choices made
-            </text>
-            {isEnding && (
-              <>
-                <text size="small" color="#666666">•</text>
-                <text size="small" color="#FF0080">ENDING</text>
-              </>
-            )}
-          </hstack>
-          
-          {/* Current Scene */}
+          <text size="small" color="neutral-content-weak">
+            {storyProgress} choices made
+          </text>
+          {isEnding && (
+            <>
+              <text size="small" color="neutral-content-weak">•</text>
+              <text size="small" color="accent">ENDING</text>
+            </>
+          )}
+        </hstack>
+        
+        {/* Current Scene */}
+        <vstack width={'100%'} gap="small" alignment="center middle">
+          <text size="medium" weight="bold" color="neutral-content" wrap alignment="center middle">
+            {scene.title}
+          </text>
+          <text size="small" color="neutral-content-weak" wrap alignment="center middle">
+            {scene.description.length > 200 
+              ? scene.description.substring(0, 200) + '...' 
+              : scene.description}
+          </text>
+        </vstack>
+        
+        {/* Choices Preview */}
+        {!isEnding && scene.choices && scene.choices.length > 0 && (
           <vstack width={'100%'} gap="small" alignment="center middle">
-            <text size="medium" weight="bold" color="#00FFFF" wrap alignment="center middle">
-              {scene.title}
+            <text size="small" weight="bold" color="neutral-content" alignment="center middle">
+              What happens next?
             </text>
-            <text size="small" color="#CCCCCC" wrap alignment="center middle">
-              {scene.description.length > 200 
-                ? scene.description.substring(0, 200) + '...' 
-                : scene.description}
+            <vstack width={'100%'} gap="small" alignment="center middle">
+              {scene.choices.map((choice: any, index: number) => (
+                <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
+                  <text size="small" color="accent" weight="bold">
+                    [{index + 1}]
+                  </text>
+                  <text size="small" color="neutral-content-weak" wrap>
+                    {choice.text.length > 80 
+                      ? choice.text.substring(0, 80) + '...' 
+                      : choice.text}
+                  </text>
+                </hstack>
+              ))}
+            </vstack>
+          </vstack>
+        )}
+        
+        {/* Ending Message */}
+        {isEnding && (
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="medium" weight="bold" color="accent" alignment="center middle">
+              🎭 Story Complete!
+            </text>
+            <text size="small" color="neutral-content-weak" alignment="center middle">
+              This adventure has reached its conclusion
             </text>
           </vstack>
-          
-          {/* Choices Preview */}
-          {!isEnding && scene.choices && scene.choices.length > 0 && (
-            <vstack width={'100%'} gap="small" alignment="center middle">
-              <text size="small" weight="bold" color="#FF00FF" alignment="center middle">
-                What happens next?
-              </text>
-              <vstack width={'100%'} gap="small" alignment="center middle">
-                {scene.choices.map((choice: any, index: number) => (
-                  <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
-                    <text size="small" color="#FFFF00" weight="bold">
-                      [{index + 1}]
-                    </text>
-                    <text size="small" color="#CCCCCC" wrap>
-                      {choice.text.length > 80 
-                        ? choice.text.substring(0, 80) + '...' 
-                        : choice.text}
-                    </text>
-                  </hstack>
-                ))}
-              </vstack>
-            </vstack>
-          )}
-          
-          {/* Ending Message */}
-          {isEnding && (
-            <vstack width={'100%'} gap="small" alignment="center middle">
-              <text size="medium" weight="bold" color="#FF0080" alignment="center middle">
-                🎭 Story Complete!
-              </text>
-              <text size="small" color="#CCCCCC" alignment="center middle">
-                This adventure has reached its conclusion
-              </text>
-            </vstack>
-          )}
-          
-          {/* Enter Button */}
-          <button appearance="primary" onPress={mount}>
-            {isEnding ? 'View Full Story' : 'Continue the Adventure'}
-          </button>
-        </vstack>
-      </zstack>
+        )}
+        
+        {/* Enter Button */}
+        <button appearance="primary" onPress={mount}>
+          {isEnding ? 'View Full Story' : 'Continue the Adventure'}
+        </button>
+      </vstack>
     );
   } else {
-    // No game data - show default interface with neon styling
+    // No game data - show default interface
     return (
-      <zstack width={'100%'} height={'100%'} alignment="center middle">
-        {/* Dark background with neon border effect */}
-        <image 
-          url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cdefs%3E%3Cfilter id='neon'%3E%3CfeGaussianBlur stdDeviation='3' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='400' height='400' fill='%23000' stroke='%23FF00FF' stroke-width='3' filter='url(%23neon)' opacity='0.95'/%3E%3C/svg%3E"
-          imageHeight={400}
-          imageWidth={400}
-          height="100%"
-          width="100%"
-          resizeMode="cover"
-        />
-        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
-          <text size="xxlarge" weight="bold" alignment="center middle" color="#FF00FF">
-            Choose Your Own Chaos
-          </text>
-          <text size="medium" color="#00FFFF" alignment="center middle" wrap>
-            Let the chaos begin!
-          </text>
-          <button appearance="primary" onPress={mount}>
-            Enter
-          </button>
-        </vstack>
-      </zstack>
+      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
+        <text size="xxlarge" weight="bold" alignment="center middle">
+          Choose Your Own Chaos
+        </text>
+        <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
+          Let the chaos begin!
+        </text>
+        <button appearance="primary" onPress={mount}>
+          Enter
+        </button>
+      </vstack>
     );
   }
 };
