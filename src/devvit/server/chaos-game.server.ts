@@ -20,7 +20,7 @@ function getUserFlair(rank: number, chaosLevel: number): UserFlairData {
   if (rank === 1) {
     if (chaosLevel >= 9.0) {
       return {
-        text: '👑 Chaos Emperor',
+        text: '👑 Silleymeister Supreme',
         backgroundColor: '#FF0040',
         textColor: 'light'
       };
@@ -59,7 +59,7 @@ function getUserFlair(rank: number, chaosLevel: number): UserFlairData {
   if (rank <= 10) {
     if (chaosLevel >= 8.0) {
       return {
-        text: '🤡 Silleymeister Supreme',
+        text: '🤡 Chaos Bringer',
         backgroundColor: '#FF0080',
         textColor: 'light'
       };
