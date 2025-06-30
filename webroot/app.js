@@ -101,7 +101,7 @@ function handleInitialData(data) {
     console.log('Found existing game with data, switching to play mode:', data.gameId);
     gameState.currentGame = data.game;
     gameState.gameMode = 'play';
-    gameState.message = `Loading existing game: ${data.game.title}`;
+    gameState.message = `> LOADING EXISTING CHAOS PROTOCOL: ${data.game.title}`;
     showGameScreen();
   } else if (data.gameId && !data.game) {
     // We have a gameId but no game data, request it
@@ -110,11 +110,11 @@ function handleInitialData(data) {
       type: 'getGame', 
       data: { gameId: data.gameId } 
     });
-    showLoadingState('Loading existing game...');
+    showLoadingState('> ACCESSING CHAOS DATABASE...');
   } else {
     // No existing game, show menu
     console.log('No existing game found, showing menu');
-    gameState.message = 'Ready to create a new chaos story!';
+    gameState.message = '> CHAOS PROTOCOL READY FOR INITIALIZATION';
     showMenuScreen();
   }
 }
@@ -125,7 +125,7 @@ function handleGameCreated(data) {
     // We have the complete game data
     gameState.currentGame = data.game;
     gameState.gameMode = 'play';
-    gameState.message = `Game created successfully! ${data.game.title}`;
+    gameState.message = `> CHAOS PROTOCOL INITIALIZED: ${data.game.title}`;
     showGameScreen();
   } else {
     // We only have the gameId, request the full data
@@ -133,7 +133,7 @@ function handleGameCreated(data) {
       type: 'getGame', 
       data: { gameId: data.gameId } 
     });
-    showLoadingState('Loading new game...');
+    showLoadingState('> LOADING NEW CHAOS INSTANCE...');
   }
 }
 
@@ -142,10 +142,10 @@ function handleGameData(data) {
   if (data.status === 'success') {
     gameState.currentGame = data.game;
     gameState.gameMode = 'play';
-    gameState.message = `Loaded game: ${data.game.title}`;
+    gameState.message = `> CHAOS PROTOCOL LOADED: ${data.game.title}`;
     showGameScreen();
   } else {
-    gameState.message = `Error loading game: ${data.message}`;
+    gameState.message = `> ERROR: CHAOS PROTOCOL CORRUPTED - ${data.message}`;
     showMenuScreen();
   }
 }
@@ -162,14 +162,14 @@ function handleChoiceResult(data) {
     }
     updateGameDisplay();
   } else {
-    gameState.message = `Error making choice: ${data.message}`;
+    gameState.message = `> ERROR: CHOICE PROCESSING FAILED - ${data.message}`;
     updateMessage();
   }
 }
 
 function handleError(data) {
   console.error('Received error from Devvit:', data);
-  gameState.message = `Error: ${data.message}`;
+  gameState.message = `> SYSTEM ERROR: ${data.message}`;
   updateMessage();
 }
 
@@ -203,12 +203,13 @@ function makeChoice(choiceId) {
 }
 
 // UI Display Functions
-function showLoadingState(message = 'Initializing interactive story system...') {
+function showLoadingState(message = '> INITIALIZING CHAOS PROTOCOL...') {
   hideAllScreens();
   elements.loadingScreen.style.display = 'flex';
   const loadingMessage = elements.loadingScreen.querySelector('.loading-message');
   if (loadingMessage) {
     loadingMessage.textContent = message;
+    loadingMessage.classList.add('terminal-cursor');
   }
 }
 
@@ -234,7 +235,15 @@ function updateMessage() {
   if (elements.messageDiv && gameState.message) {
     elements.messageDiv.textContent = gameState.message;
     elements.messageDiv.style.display = 'block';
+    elements.messageDiv.classList.add('terminal-cursor');
   }
+}
+
+function createStatusBadge(text, type = 'info') {
+  const badge = document.createElement('span');
+  badge.className = `status-badge ${type}`;
+  badge.textContent = text;
+  return badge;
 }
 
 function updateGameDisplay() {
@@ -249,18 +258,34 @@ function updateGameDisplay() {
   }
   
   if (elements.gameInfo) {
-    const createdBy = game.createdByUsername || 'Unknown';
-    elements.gameInfo.innerHTML = `
-      <span>Chaos Level: ${game.chaosLevel}/5</span>
-      <span>Created by: u/${createdBy}</span>
-      <span>Scene: ${scene.id}</span>
-    `;
+    const createdBy = game.createdByUsername || 'UNKNOWN_USER';
+    elements.gameInfo.innerHTML = '';
+    
+    // Add status badges
+    const chaosLevel = createStatusBadge(`CHAOS LEVEL ${game.chaosLevel}`, 'chaos');
+    const creator = createStatusBadge(`CREATED BY: u/${createdBy}`, 'info');
+    const sceneInfo = createStatusBadge(`SCENE: ${scene.id}`, 'info');
+    
+    elements.gameInfo.appendChild(chaosLevel);
+    elements.gameInfo.appendChild(creator);
+    elements.gameInfo.appendChild(sceneInfo);
+    
+    // Add special status badges based on chaos level
+    if (game.chaosLevel >= 4) {
+      const mindBreak = createStatusBadge('MIND-BREAK', 'mind-break');
+      elements.gameInfo.appendChild(mindBreak);
+    }
+    
+    if (game.chaosLevel === 5) {
+      const death = createStatusBadge('CHARACTER DEATH', 'death');
+      elements.gameInfo.appendChild(death);
+    }
   }
   
   // Update story history
   updateStoryHistory();
   
-  // Update current scene info
+  // Update current scene info with status badges
   if (elements.sceneTitle) {
     elements.sceneTitle.textContent = scene.title;
   }
@@ -280,19 +305,24 @@ function updateStoryHistory() {
   elements.storyHistoryContainer.innerHTML = '';
   
   if (game.storyHistory.length === 0) {
-    elements.storyHistoryContainer.innerHTML = '<p class="no-history">This is the beginning of your story...</p>';
+    elements.storyHistoryContainer.innerHTML = '<p class="no-history">> BEGINNING OF CHAOS PROTOCOL...</p>';
     return;
   }
   
   // Create story history display
   const historyTitle = document.createElement('h3');
-  historyTitle.textContent = 'Story So Far';
+  historyTitle.textContent = '> CHAOS HISTORY LOG';
   historyTitle.className = 'history-title';
   elements.storyHistoryContainer.appendChild(historyTitle);
   
   game.storyHistory.forEach((entry, index) => {
     const historyItem = document.createElement('div');
     historyItem.className = 'history-item';
+    
+    // Add glitch effect randomly for chaos
+    if (Math.random() < 0.1) {
+      historyItem.classList.add('glitch');
+    }
     
     const sceneInfo = document.createElement('div');
     sceneInfo.className = 'history-scene';
@@ -303,13 +333,13 @@ function updateStoryHistory() {
     
     const choiceInfo = document.createElement('div');
     choiceInfo.className = 'history-choice';
-    const username = entry.chosenByUsername || 'Unknown User';
+    const username = entry.chosenByUsername || 'UNKNOWN_USER';
     const timestamp = new Date(entry.timestamp).toLocaleString();
     choiceInfo.innerHTML = `
-      <div class="choice-text">"${entry.choiceText}"</div>
+      <div class="choice-text">> ${entry.choiceText}</div>
       <div class="choice-meta">
         <span class="choice-user">— u/${username}</span>
-        <span class="choice-time">${timestamp}</span>
+        <span class="choice-time">[${timestamp}]</span>
       </div>
     `;
     
@@ -329,9 +359,10 @@ function updateChoicesDisplay() {
     // Show ending screen
     elements.choicesContainer.innerHTML = `
       <div class="ending-message">
-        <h3>The End</h3>
-        <p>Thank you for playing this collaborative story!</p>
-        <p>The story was shaped by the choices of ${gameState.currentGame.storyHistory.length} different players.</p>
+        <h3>CHAOS PROTOCOL TERMINATED</h3>
+        <p>> Thank you for participating in this collaborative chaos experiment</p>
+        <p>> The narrative was shaped by ${gameState.currentGame.storyHistory.length} different users</p>
+        <p>> Reality.exe has stopped working</p>
       </div>
     `;
     return;
@@ -339,7 +370,7 @@ function updateChoicesDisplay() {
   
   // Add choices title
   const choicesTitle = document.createElement('h3');
-  choicesTitle.textContent = 'What happens next?';
+  choicesTitle.textContent = '> SELECT CHAOS VECTOR';
   choicesTitle.className = 'choices-title';
   elements.choicesContainer.appendChild(choicesTitle);
   
@@ -351,7 +382,7 @@ function updateChoicesDisplay() {
     
     const choiceNumber = document.createElement('span');
     choiceNumber.className = 'choice-number';
-    choiceNumber.textContent = `${index + 1}.`;
+    choiceNumber.textContent = `[${index + 1}]`;
     
     const choiceText = document.createElement('span');
     choiceText.textContent = ` ${choice.text}`;
@@ -362,7 +393,7 @@ function updateChoicesDisplay() {
     if (gameState.makingChoice) {
       const loadingText = document.createElement('span');
       loadingText.className = 'loading-text';
-      loadingText.textContent = ' (Processing...)';
+      loadingText.textContent = ' [PROCESSING...]';
       button.appendChild(loadingText);
     }
     
@@ -378,4 +409,23 @@ function extractSubredditName() {
   return null;
 }
 
-console.log('App.js loaded successfully');
+// Add some terminal effects
+function addTerminalEffect() {
+  // Add random glitch effects
+  setInterval(() => {
+    const elements = document.querySelectorAll('.choice-button, .history-item');
+    elements.forEach(el => {
+      if (Math.random() < 0.05) { // 5% chance
+        el.classList.add('glitch');
+        setTimeout(() => el.classList.remove('glitch'), 300);
+      }
+    });
+  }, 2000);
+}
+
+// Initialize terminal effects when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(addTerminalEffect, 1000);
+});
+
+console.log('> CHAOS PROTOCOL APP.JS LOADED SUCCESSFULLY');
