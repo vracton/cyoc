@@ -255,7 +255,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
 const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, reddit, redis, ui } = context;
 
-  // Create the form using useForm hook
+  // Create the form using useForm hook - THIS FORM IS FOR EMPTY POSTS
   const createForm = useForm(formConfig, async (event) => {
     const values = event;
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
@@ -263,6 +263,7 @@ const App: Devvit.BlockComponent = (context) => {
       return;
     }
 
+    let newPost: any;
     try {
       console.log('Creating game with values:', values);
       
@@ -276,6 +277,7 @@ const App: Devvit.BlockComponent = (context) => {
       } catch (error) {
         console.error('Error getting username for game creation:', error);
       }
+
       // Create the chaos game using server-side function
       const result = await createChaosGame({
         title: values.title as string,
@@ -289,34 +291,35 @@ const App: Devvit.BlockComponent = (context) => {
         throw new Error(result.message);
       }
 
-      // Store the game ID in the post config for later retrieval
-      if (postId) {
-        await redis.set(`post_game:${postId}`, result.gameId);
-        console.log('Stored game ID in post config:', postId, result.gameId);
-      }
+      // Create a NEW POST for this game
+      const subreddit = await reddit.getCurrentSubreddit();
+      newPost = await reddit.submitPost({
+        title: values.title as string,
+        subredditName: subreddit.name,
+        preview: <Preview postId={''} />, // We'll update this after we get the post ID
+        runAs: 'USER',
+        userGeneratedContent: { text: values.title as string }
+      });
 
-      // Get the complete game data to send to webview
-      const gameResult = await getChaosGame(result.gameId, { redis });
-      let gameData = null;
-      if (gameResult.status === 'success') {
-        gameData = gameResult.game;
-      }
+      // Store the game ID in the NEW post config
+      await redis.set(`post_game:${newPost.id}`, result.gameId);
+      console.log('Stored game ID in NEW post config:', newPost.id, result.gameId);
 
-      ui.showToast({ text: 'Chaos story created successfully!' });
-      
-      // Notify the web view that a game was created with complete game data
-      if (webViewRef.current) {
-        webViewRef.current.postMessage({
-          type: 'gameCreated',
-          data: { 
-            gameId: result.gameId,
-            game: gameData
-          }
-        });
-      }
+      ui.showToast({ text: 'Chaos story and new post created successfully!' });
+      ui.navigateTo(newPost.url);
       
     } catch (error) {
       console.error('Error creating chaos story:', error);
+      
+      // Clean up the new post if it was created
+      if (newPost) {
+        try {
+          await newPost.remove(false);
+        } catch (cleanupError) {
+          console.error('Error cleaning up new post:', cleanupError);
+        }
+      }
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       ui.showToast({ text: `Error creating story: ${errorMessage}` });
       
