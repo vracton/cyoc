@@ -677,6 +677,12 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
   const { ui, redis, reddit, userId } = context;
   const values = event.values;
 
+  // Check if values is undefined
+  if (!values) {
+    ui.showToast({ text: 'No form data received. Please try again.' });
+    return;
+  }
+
   if (!values.title || !values.initialPrompt || !values.chaosLevel) {
     ui.showToast({ text: 'Please fill in all fields!' });
     return;
