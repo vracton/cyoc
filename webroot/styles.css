@@ -420,6 +420,7 @@ body::after {
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     position: relative;
     z-index: 1;
+  margin-left: auto;
 }
 
 .primary-btn:hover {
