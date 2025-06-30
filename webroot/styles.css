@@ -1080,6 +1080,8 @@ body::after {
     font-weight: 600;
     font-size: 1.1rem;
     text-shadow: 0 0 5px var(--neon-cyan);
+    display: block;
+    margin-bottom: var(--spacing-xs);
 }
 
 .you-indicator {
@@ -1088,6 +1090,19 @@ body::after {
     margin-left: var(--spacing-sm);
     font-weight: 600;
     text-shadow: 0 0 5px var(--neon-magenta);
+}
+
+.user-flair {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
 .stats-section {
@@ -1171,6 +1186,7 @@ body::after {
     justify-content: space-around;
     flex-wrap: wrap;
     gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
 }
 
 .legend-item {
@@ -1187,6 +1203,42 @@ body::after {
 
 .legend-text {
     color: var(--text-muted);
+}
+
+.flair-legend {
+    border-top: 1px solid var(--neon-purple);
+    padding-top: var(--spacing-md);
+}
+
+.flair-legend p {
+    color: var(--text-medium);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9rem;
+}
+
+.flair-legend ul {
+    list-style: none;
+    padding: 0;
+}
+
+.flair-legend li {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: var(--spacing-xs);
+    padding-left: var(--spacing-md);
+    position: relative;
+}
+
+.flair-legend li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--neon-purple);
+}
+
+.flair-legend strong {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
 }
 
 /* Ending */

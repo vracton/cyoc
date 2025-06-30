@@ -8,6 +8,164 @@ const getGamesByUserKey = (userId: string) => `user_games:${userId}` as const;
 const getUserChaosProfileKey = (userId: string) => `user_chaos_profile:${userId}` as const;
 const getChaosLeaderboardKey = () => 'chaos_leaderboard' as const;
 
+// User Flair System
+interface UserFlairData {
+  text: string;
+  backgroundColor: string;
+  textColor: 'light' | 'dark';
+}
+
+function getUserFlair(rank: number, chaosLevel: number): UserFlairData {
+  // Special flairs for top ranks
+  if (rank === 1) {
+    if (chaosLevel >= 9.0) {
+      return {
+        text: '👑 Chaos Emperor',
+        backgroundColor: '#FF0040',
+        textColor: 'light'
+      };
+    } else if (chaosLevel >= 7.0) {
+      return {
+        text: '👑 Chaos King',
+        backgroundColor: '#FF00FF',
+        textColor: 'light'
+      };
+    } else {
+      return {
+        text: '👑 Chaos Lord',
+        backgroundColor: '#8000FF',
+        textColor: 'light'
+      };
+    }
+  }
+  
+  if (rank === 2) {
+    return {
+      text: '🥈 Chaos Lieutenant',
+      backgroundColor: '#00FFFF',
+      textColor: 'dark'
+    };
+  }
+  
+  if (rank === 3) {
+    return {
+      text: '🥉 Chaos Sergeant',
+      backgroundColor: '#0080FF',
+      textColor: 'light'
+    };
+  }
+  
+  // Rank-based flairs for top 10
+  if (rank <= 10) {
+    if (chaosLevel >= 8.0) {
+      return {
+        text: '🤡 Silleymeister Supreme',
+        backgroundColor: '#FF0080',
+        textColor: 'light'
+      };
+    } else if (chaosLevel >= 6.0) {
+      return {
+        text: '🎭 The Joker',
+        backgroundColor: '#FF00FF',
+        textColor: 'light'
+      };
+    } else {
+      return {
+        text: '⚡ Chaos Elite',
+        backgroundColor: '#8000FF',
+        textColor: 'light'
+      };
+    }
+  }
+  
+  // Chaos level based flairs for everyone else
+  if (chaosLevel >= 8.0) {
+    return {
+      text: '🤡 Chaos Clown',
+      backgroundColor: '#FF0040',
+      textColor: 'light'
+    };
+  } else if (chaosLevel >= 6.0) {
+    return {
+      text: '🤯 Chaos Maker',
+      backgroundColor: '#FF00FF',
+      textColor: 'light'
+    };
+  } else if (chaosLevel >= 4.0) {
+    return {
+      text: '🎲 Chaos Agent',
+      backgroundColor: '#0080FF',
+      textColor: 'light'
+    };
+  } else if (chaosLevel >= 2.0) {
+    return {
+      text: '🌀 Chaos Novice',
+      backgroundColor: '#00FFFF',
+      textColor: 'dark'
+    };
+  } else if (chaosLevel > 0) {
+    return {
+      text: '🤔 Chaos Curious',
+      backgroundColor: '#666666',
+      textColor: 'light'
+    };
+  } else {
+    // Default flair for new users
+    return {
+      text: '😵‍💫 Confused Bystander',
+      backgroundColor: '#333333',
+      textColor: 'light'
+    };
+  }
+}
+
+async function updateUserFlair(
+  userId: string,
+  username: string,
+  context: { reddit: any }
+): Promise<void> {
+  try {
+    // Get current leaderboard to find user's rank
+    const leaderboardResult = await getChaosLeaderboard({ redis: context.redis } as any);
+    if (leaderboardResult.status !== 'success') {
+      console.log('Could not get leaderboard for flair update');
+      return;
+    }
+    
+    const leaderboard = leaderboardResult.leaderboard;
+    const userIndex = leaderboard.findIndex(profile => profile.userId === userId);
+    
+    let rank = userIndex + 1;
+    let chaosLevel = 0;
+    
+    if (userIndex !== -1) {
+      chaosLevel = leaderboard[userIndex].globalChaosLevel;
+    } else {
+      // User not on leaderboard yet, they get default flair
+      rank = 999;
+    }
+    
+    const flairData = getUserFlair(rank, chaosLevel);
+    
+    // Get current subreddit name
+    const subredditName = await context.reddit.getCurrentSubredditName();
+    
+    // Set the user flair
+    await context.reddit.setUserFlair({
+      text: flairData.text,
+      subredditName,
+      username,
+      backgroundColor: flairData.backgroundColor,
+      textColor: flairData.textColor,
+    });
+    
+    console.log(`Updated flair for u/${username}: ${flairData.text} (Rank: ${rank}, Chaos: ${chaosLevel.toFixed(1)})`);
+  } catch (error) {
+    console.error('Error updating user flair:', error);
+    // Don't throw error - flair update is not critical to game functionality
+  }
+}
+
 // Gemini service functions
 function getChaosLevelDescription(level: ChaosLevel): string {
   const descriptions = {
@@ -292,7 +450,7 @@ function createFallbackNextScene(chosenChoice: string, sceneNumber: number, chao
 // Main server-side functions exported for use in Devvit
 export async function createChaosGame(
   data: { title: string; initialPrompt: string; chaosLevel: number },
-  context: { redis: RedisClient; userId?: string; username?: string }
+  context: { redis: RedisClient; userId?: string; username?: string; reddit?: any }
 ): Promise<{ status: 'success'; gameId: string } | { status: 'error'; message: string }> {
   try {
     console.log('createChaosGame called with:', data, 'userId:', context.userId, 'username:', context.username);
@@ -358,6 +516,11 @@ export async function createChaosGame(
       await context.redis.set(userGamesKey, JSON.stringify(userGames));
     }
 
+    // Update user flair for game creator (they get default flair if new)
+    if (context.username && context.reddit) {
+      await updateUserFlair(context.userId, context.username, context);
+    }
+
     console.log('Successfully created and saved chaos game:', gameId);
     return { status: 'success', gameId };
   } catch (error) {
@@ -396,7 +559,7 @@ export async function getChaosGame(
 
 export async function makeChaosChoice(
   data: { gameId: string; choiceId: string },
-  context: { redis: RedisClient; userId?: string; username?: string }
+  context: { redis: RedisClient; userId?: string; username?: string; reddit?: any }
 ): Promise<{ status: 'success'; scene: GameScene; game: ChaosGame } | { status: 'error'; message: string }> {
   try {
     if (!context.userId) {
@@ -448,6 +611,11 @@ export async function makeChaosChoice(
     // Save updated game
     await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
 
+    // Update user flair for choice maker
+    if (context.username && context.reddit) {
+      await updateUserFlair(context.userId, context.username, context);
+    }
+
     return { status: 'success', scene: newScene, game };
   } catch (error) {
     console.error('Error making choice:', error);
@@ -457,7 +625,7 @@ export async function makeChaosChoice(
 
 export async function voteOnHistoryChoice(
   data: { gameId: string; historyIndex: number; voteType: string },
-  context: { redis: RedisClient; userId?: string; username?: string }
+  context: { redis: RedisClient; userId?: string; username?: string; reddit?: any }
 ): Promise<{ status: 'success'; historyEntry: StoryHistoryEntry; userProfile: UserChaosProfile } | { status: 'error'; message: string }> {
   try {
     if (!context.userId) {
@@ -540,7 +708,7 @@ export async function voteOnHistoryChoice(
       choiceMakerId, 
       voteType, 
       previousVoteType, 
-      { redis: context.redis, username: choiceMakerUsername }
+      { redis: context.redis, username: choiceMakerUsername, reddit: context.reddit }
     );
 
     // Get the voter's profile (for display purposes)
@@ -566,6 +734,11 @@ export async function voteOnHistoryChoice(
 
     // Update leaderboard with the choice maker's updated profile
     await updateLeaderboard(choiceMakerProfile, context);
+
+    // Update flair for the choice maker whose profile was updated
+    if (choiceMakerUsername && context.reddit) {
+      await updateUserFlair(choiceMakerId, choiceMakerUsername, context);
+    }
 
     console.log(`Vote processed successfully. Choice maker ${choiceMakerId} received ${voteType} chaos points.`);
 
@@ -638,7 +811,7 @@ async function updateUserChaosProfile(
   userId: string,
   newVoteType: ChaosVoteType,
   previousVoteType: ChaosVoteType | null,
-  context: { redis: RedisClient; username?: string }
+  context: { redis: RedisClient; username?: string; reddit?: any }
 ): Promise<UserChaosProfile> {
   const profileResult = await getUserChaosProfile(userId, context);
   

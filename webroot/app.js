@@ -308,6 +308,7 @@ function displayLeaderboard() {
     const rank = index + 1;
     const chaosEmoji = getChaosEmoji(user.globalChaosLevel);
     const isCurrentUser = gameState.initialData?.userId === user.userId;
+    const userFlair = getUserFlairDisplay(rank, user.globalChaosLevel);
     
     let rankIcon = '';
     if (rank === 1) rankIcon = '👑';
@@ -323,6 +324,9 @@ function displayLeaderboard() {
         <div class="user-section">
           <span class="username">u/${user.username || 'UNKNOWN_USER'}</span>
           ${isCurrentUser ? '<span class="you-indicator">(YOU)</span>' : ''}
+          <div class="user-flair" style="background-color: ${userFlair.backgroundColor}; color: ${userFlair.textColor === 'light' ? '#ffffff' : '#000000'};">
+            ${userFlair.text}
+          </div>
         </div>
         <div class="stats-section">
           <div class="chaos-level">
@@ -368,10 +372,68 @@ function displayLeaderboard() {
           <span class="legend-text">INSANE CHAOS (8.0-10.0)</span>
         </div>
       </div>
+      
+      <h3>> USER FLAIR SYSTEM</h3>
+      <div class="flair-legend">
+        <p>Users automatically receive flairs based on their rank and chaos level:</p>
+        <ul>
+          <li><strong>Rank 1:</strong> Chaos Emperor/King/Lord (based on chaos level)</li>
+          <li><strong>Rank 2:</strong> Chaos Lieutenant</li>
+          <li><strong>Rank 3:</strong> Chaos Sergeant</li>
+          <li><strong>Top 10:</strong> Silleymeister Supreme, The Joker, or Chaos Elite</li>
+          <li><strong>High Chaos:</strong> Chaos Clown, Chaos Maker, Chaos Agent</li>
+          <li><strong>New Users:</strong> Confused Bystander (everyone starts here!)</li>
+        </ul>
+      </div>
     </div>
   `;
   
   elements.leaderboardContent.innerHTML = html;
+}
+
+function getUserFlairDisplay(rank, chaosLevel) {
+  // Mirror the server-side flair logic for display
+  if (rank === 1) {
+    if (chaosLevel >= 9.0) {
+      return { text: '👑 Chaos Emperor', backgroundColor: '#FF0040', textColor: 'light' };
+    } else if (chaosLevel >= 7.0) {
+      return { text: '👑 Chaos King', backgroundColor: '#FF00FF', textColor: 'light' };
+    } else {
+      return { text: '👑 Chaos Lord', backgroundColor: '#8000FF', textColor: 'light' };
+    }
+  }
+  
+  if (rank === 2) {
+    return { text: '🥈 Chaos Lieutenant', backgroundColor: '#00FFFF', textColor: 'dark' };
+  }
+  
+  if (rank === 3) {
+    return { text: '🥉 Chaos Sergeant', backgroundColor: '#0080FF', textColor: 'light' };
+  }
+  
+  if (rank <= 10) {
+    if (chaosLevel >= 8.0) {
+      return { text: '🤡 Silleymeister Supreme', backgroundColor: '#FF0080', textColor: 'light' };
+    } else if (chaosLevel >= 6.0) {
+      return { text: '🎭 The Joker', backgroundColor: '#FF00FF', textColor: 'light' };
+    } else {
+      return { text: '⚡ Chaos Elite', backgroundColor: '#8000FF', textColor: 'light' };
+    }
+  }
+  
+  if (chaosLevel >= 8.0) {
+    return { text: '🤡 Chaos Clown', backgroundColor: '#FF0040', textColor: 'light' };
+  } else if (chaosLevel >= 6.0) {
+    return { text: '🤯 Chaos Maker', backgroundColor: '#FF00FF', textColor: 'light' };
+  } else if (chaosLevel >= 4.0) {
+    return { text: '🎲 Chaos Agent', backgroundColor: '#0080FF', textColor: 'light' };
+  } else if (chaosLevel >= 2.0) {
+    return { text: '🌀 Chaos Novice', backgroundColor: '#00FFFF', textColor: 'dark' };
+  } else if (chaosLevel > 0) {
+    return { text: '🤔 Chaos Curious', backgroundColor: '#666666', textColor: 'light' };
+  } else {
+    return { text: '😵‍💫 Confused Bystander', backgroundColor: '#333333', textColor: 'light' };
+  }
 }
 
 function makeChoice(choiceId) {

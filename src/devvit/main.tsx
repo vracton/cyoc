@@ -189,7 +189,7 @@ const App: Devvit.BlockComponent = (context) => {
             console.error('Error getting username for choice:', error);
           }
 
-          const result = await makeChaosChoice(message.data, { redis, userId, username });
+          const result = await makeChaosChoice(message.data, { redis, userId, username, reddit });
           console.log('Choice result:', result);
           
           webView.postMessage({
@@ -219,7 +219,7 @@ const App: Devvit.BlockComponent = (context) => {
             console.error('Error getting username for vote:', error);
           }
 
-          const result = await voteOnHistoryChoice(message.data, { redis, userId, username });
+          const result = await voteOnHistoryChoice(message.data, { redis, userId, username, reddit });
           console.log('History chaos vote result:', result);
           
           webView.postMessage({
@@ -282,7 +282,7 @@ const App: Devvit.BlockComponent = (context) => {
               title: values.title as string,
               initialPrompt: values.initialPrompt as string,
               chaosLevel: parseInt(values.chaosLevel as string)
-            }, { redis: formRedis, userId, username });
+            }, { redis: formRedis, userId, username, reddit: formReddit });
 
             console.log('Game creation result:', result);
 
@@ -389,7 +389,7 @@ const createChaosStoryForm = Devvit.createForm(formConfig, async (event, context
       title: values.title as string,
       initialPrompt: values.initialPrompt as string,
       chaosLevel: parseInt(values.chaosLevel as string)
-    }, { redis, userId, username });
+    }, { redis, userId, username, reddit });
 
     console.log('Menu action game creation result:', result);
 
