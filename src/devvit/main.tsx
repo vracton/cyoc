@@ -258,7 +258,8 @@ const App: Devvit.BlockComponent = (context) => {
   // Create the form using useForm hook
   const createForm = useForm(formConfig, async (event) => {
     const values = event.values;
-
+    console.log(values)
+    console.log(event)
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
       ui.showToast({ text: 'Please fill in all fields!' });
       return;
