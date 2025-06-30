@@ -325,6 +325,7 @@ body {
 .history-choice {
     border-top: 1px solid #003300;
     padding-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 .choice-text {
@@ -359,6 +360,19 @@ body {
 
 .choice-time {
     color: #666;
+}
+
+/* History Chaos Voting */
+.history-chaos-voting {
+    border-top: 1px solid #333;
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    margin-top: 10px;
+    border: 1px solid #333;
 }
 
 /* Current Scene */
@@ -426,13 +440,6 @@ body {
     text-transform: uppercase;
     letter-spacing: 2px;
     text-shadow: 0 0 10px #00ff00;
-}
-
-.choice-container {
-    margin-bottom: 20px;
-    border: 1px solid #333;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 10px;
 }
 
 .choice-button {
@@ -505,16 +512,6 @@ body {
 }
 
 /* Chaos Voting System */
-.chaos-voting {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #333;
-    margin-top: 5px;
-}
-
 .chaos-meter {
     flex: 1;
     margin-right: 15px;
@@ -673,7 +670,7 @@ body {
         padding: 4px 8px;
     }
     
-    .chaos-voting {
+    .history-chaos-voting {
         flex-direction: column;
         gap: 10px;
     }

@@ -177,20 +177,22 @@ function handleChaosVoteResult(data) {
   console.log('Chaos vote result:', data);
   
   if (data.status === 'success') {
-    // Update the choice with new chaos data
-    if (gameState.currentGame) {
-      const choice = gameState.currentGame.currentScene.choices.find(c => c.id === data.choice.id);
-      if (choice) {
-        choice.chaosVotes = data.choice.chaosVotes;
-        choice.chaosLevel = data.choice.chaosLevel;
+    // Update the history entry with new chaos data
+    if (gameState.currentGame && data.historyEntry) {
+      // Find and update the corresponding history entry
+      const historyIndex = gameState.currentGame.storyHistory.findIndex(
+        entry => entry.timestamp === data.historyEntry.timestamp
+      );
+      if (historyIndex !== -1) {
+        gameState.currentGame.storyHistory[historyIndex] = data.historyEntry;
       }
     }
     
     // Update user profile
     gameState.userProfile = data.userProfile;
     
-    // Refresh the choices display to show updated chaos meters
-    updateChoicesDisplay();
+    // Refresh the story history display to show updated chaos meters
+    updateStoryHistory();
     updateUserProfile();
   } else {
     console.error('Chaos vote failed:', data.message);
@@ -232,16 +234,16 @@ function makeChoice(choiceId) {
   });
 }
 
-function voteChaos(choiceId, voteType) {
+function voteHistoryChaos(historyIndex, voteType) {
   if (!gameState.currentGame) return;
   
-  console.log('Voting chaos:', { gameId: gameState.currentGame.id, choiceId, voteType });
+  console.log('Voting on history chaos:', { gameId: gameState.currentGame.id, historyIndex, voteType });
   
   sendMessageToDevvit({ 
-    type: 'voteChaos', 
+    type: 'voteHistoryChaos', 
     data: { 
       gameId: gameState.currentGame.id, 
-      choiceId: choiceId,
+      historyIndex: historyIndex,
       voteType: voteType
     } 
   });
@@ -314,23 +316,24 @@ function createStatusBadge(text, type = 'info') {
   return badge;
 }
 
-function createChaosVotingButtons(choiceId, chaosVotes, chaosLevel) {
+function createHistoryChaosVoting(historyIndex, chaosVotes, chaosLevel) {
   const container = document.createElement('div');
-  container.className = 'chaos-voting';
+  container.className = 'history-chaos-voting';
   
   const meterContainer = document.createElement('div');
   meterContainer.className = 'chaos-meter';
   
   const meterLabel = document.createElement('span');
   meterLabel.className = 'chaos-meter-label';
-  meterLabel.textContent = `CHAOS: ${chaosLevel.toFixed(1)}`;
+  meterLabel.textContent = `CHAOS RATING: ${chaosLevel ? chaosLevel.toFixed(1) : '0.0'}`;
   
   const meterBar = document.createElement('div');
   meterBar.className = 'chaos-meter-bar';
   
   const meterFill = document.createElement('div');
   meterFill.className = 'chaos-meter-fill';
-  meterFill.style.width = `${Math.min(chaosLevel * 33.33, 100)}%`;
+  const fillPercentage = chaosLevel ? Math.min(chaosLevel * 33.33, 100) : 0;
+  meterFill.style.width = `${fillPercentage}%`;
   
   meterBar.appendChild(meterFill);
   meterContainer.appendChild(meterLabel);
@@ -348,18 +351,19 @@ function createChaosVotingButtons(choiceId, chaosVotes, chaosLevel) {
   voteTypes.forEach(vote => {
     const button = document.createElement('button');
     button.className = 'chaos-vote-btn';
-    button.innerHTML = `${vote.emoji} ${chaosVotes[vote.type].length}`;
+    const voteCount = chaosVotes && chaosVotes[vote.type] ? chaosVotes[vote.type].length : 0;
+    button.innerHTML = `${vote.emoji} ${voteCount}`;
     button.title = `Vote ${vote.label}`;
     
     // Check if user has already voted this type
     const userId = gameState.initialData?.userId;
-    if (userId && chaosVotes[vote.type].includes(userId)) {
+    if (userId && chaosVotes && chaosVotes[vote.type] && chaosVotes[vote.type].includes(userId)) {
       button.classList.add('voted');
     }
     
     button.addEventListener('click', (e) => {
       e.stopPropagation();
-      voteChaos(choiceId, vote.type);
+      voteHistoryChaos(historyIndex, vote.type);
     });
     
     votingButtons.appendChild(button);
@@ -461,8 +465,13 @@ function updateStoryHistory() {
       </div>
     `;
     
+    // Add chaos voting system for this history entry
+    const chaosVotes = entry.chaosVotes || { mild: [], wild: [], insane: [] };
+    const votingSystem = createHistoryChaosVoting(index, chaosVotes, chaosLevel);
+    
     historyItem.appendChild(sceneInfo);
     historyItem.appendChild(choiceInfo);
+    historyItem.appendChild(votingSystem);
     elements.storyHistoryContainer.appendChild(historyItem);
   });
 }
@@ -492,11 +501,8 @@ function updateChoicesDisplay() {
   choicesTitle.className = 'choices-title';
   elements.choicesContainer.appendChild(choicesTitle);
   
-  // Create choice buttons with chaos voting
+  // Create choice buttons
   scene.choices.forEach((choice, index) => {
-    const choiceContainer = document.createElement('div');
-    choiceContainer.className = 'choice-container';
-    
     const button = document.createElement('button');
     button.className = 'choice-button';
     button.disabled = gameState.makingChoice;
@@ -519,15 +525,7 @@ function updateChoicesDisplay() {
     }
     
     button.addEventListener('click', () => makeChoice(choice.id));
-    
-    // Add chaos voting system
-    const chaosVotes = choice.chaosVotes || { mild: [], wild: [], insane: [] };
-    const chaosLevel = choice.chaosLevel || 0;
-    const votingSystem = createChaosVotingButtons(choice.id, chaosVotes, chaosLevel);
-    
-    choiceContainer.appendChild(button);
-    choiceContainer.appendChild(votingSystem);
-    elements.choicesContainer.appendChild(choiceContainer);
+    elements.choicesContainer.appendChild(button);
   });
 }
 

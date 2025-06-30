@@ -6,8 +6,6 @@ export interface GameChoice {
   id: string;
   text: string;
   nextSceneId: string;
-  chaosVotes?: ChaosVotes;
-  chaosLevel?: number; // Calculated average chaos level
 }
 
 export interface ChaosVotes {
@@ -33,7 +31,8 @@ export interface StoryHistoryEntry {
   timestamp: number;
   chosenBy: string;
   chosenByUsername?: string; // Reddit username for display
-  chaosLevel?: number; // Chaos level at time of choice
+  chaosVotes?: ChaosVotes; // Votes on how chaotic this choice was
+  chaosLevel?: number; // Calculated average chaos level
 }
 
 export interface GameState {
@@ -88,7 +87,7 @@ export interface MakeChoiceRequest {
 
 export interface VoteChaosRequest {
   gameId: string;
-  choiceId: string;
+  historyIndex: number; // Index in the story history array
   voteType: ChaosVoteType;
 }
 
@@ -111,6 +110,6 @@ export type GetSceneResponse = Response<{
 }>;
 
 export type VoteChaosResponse = Response<{
-  choice: GameChoice;
+  historyEntry: StoryHistoryEntry;
   userProfile: UserChaosProfile;
 }>;

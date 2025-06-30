@@ -1,5 +1,5 @@
 import { Devvit, useWebView } from '@devvit/public-api';
-import { createChaosGame, getChaosGame, makeChaosChoice, voteChaosChoice, getUserChaosProfile } from './server/chaos-game.server.js';
+import { createChaosGame, getChaosGame, makeChaosChoice, voteOnHistoryChoice, getUserChaosProfile } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
 Devvit.configure({ 
@@ -15,7 +15,7 @@ export type DevvitMessage =
   | { type: 'gameCreated'; data: { gameId: string; game: any } }
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
   | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
-  | { type: 'chaosVoteResult'; data: { status: 'success'; choice: any; userProfile: any } | { status: 'error'; message: string } }
+  | { type: 'chaosVoteResult'; data: { status: 'success'; historyEntry: any; userProfile: any } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
@@ -23,7 +23,7 @@ export type WebViewMessage =
   | { type: 'showCreateForm' }
   | { type: 'getGame'; data: { gameId: string } }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } }
-  | { type: 'voteChaos'; data: { gameId: string; choiceId: string; voteType: string } };
+  | { type: 'voteHistoryChaos'; data: { gameId: string; historyIndex: number; voteType: string } };
 
 // Form configuration for creating chaos stories
 const formConfig = {
@@ -201,10 +201,10 @@ const App: Devvit.BlockComponent = (context) => {
             data: { status: 'error', message: 'Failed to process choice' }
           });
         }
-      } else if (message.type === 'voteChaos') {
-        // Handle chaos voting
+      } else if (message.type === 'voteHistoryChaos') {
+        // Handle chaos voting on history entries
         try {
-          console.log('Processing chaos vote:', message.data);
+          console.log('Processing history chaos vote:', message.data);
           
           // Get current user info for the vote
           let username = undefined;
@@ -217,15 +217,15 @@ const App: Devvit.BlockComponent = (context) => {
             console.error('Error getting username for vote:', error);
           }
 
-          const result = await voteChaosChoice(message.data, { redis, userId, username });
-          console.log('Chaos vote result:', result);
+          const result = await voteOnHistoryChoice(message.data, { redis, userId, username });
+          console.log('History chaos vote result:', result);
           
           webView.postMessage({
             type: 'chaosVoteResult',
             data: result
           });
         } catch (error) {
-          console.error('Error processing chaos vote:', error);
+          console.error('Error processing history chaos vote:', error);
           webView.postMessage({
             type: 'chaosVoteResult',
             data: { status: 'error', message: 'Failed to process chaos vote' }
