@@ -257,9 +257,7 @@ const App: Devvit.BlockComponent = (context) => {
 
   // Create the form using useForm hook
   const createForm = useForm(formConfig, async (event) => {
-    const values = event.values;
-    console.log(values)
-    console.log(event)
+    const values = event;
     if (!values.title || !values.initialPrompt || !values.chaosLevel) {
       ui.showToast({ text: 'Please fill in all fields!' });
       return;
@@ -278,7 +276,6 @@ const App: Devvit.BlockComponent = (context) => {
       } catch (error) {
         console.error('Error getting username for game creation:', error);
       }
-      console.log(values)
       // Create the chaos game using server-side function
       const result = await createChaosGame({
         title: values.title as string,
