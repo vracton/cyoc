@@ -504,7 +504,7 @@ export async function voteOnHistoryChoice(
 
     console.log(`Previous vote type: ${previousVoteType}, New vote type: ${voteType}`);
 
-    // Remove user's previous vote if any (CRITICAL FIX)
+    // Remove user's previous vote if any
     historyEntry.chaosVotes.mild = historyEntry.chaosVotes.mild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.wild = historyEntry.chaosVotes.wild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.insane = historyEntry.chaosVotes.insane.filter(id => id !== context.userId);
@@ -516,23 +516,56 @@ export async function voteOnHistoryChoice(
 
     console.log('After adding new vote:', JSON.stringify(historyEntry.chaosVotes));
 
-    // Recalculate chaos level
+    // Recalculate chaos level for the choice
     historyEntry.chaosLevel = calculateChoiceChaosLevel(historyEntry.chaosVotes);
 
     console.log(`Recalculated chaos level: ${historyEntry.chaosLevel}`);
 
-    // Update user's chaos profile - handle vote changes properly
-    const userProfile = await updateUserChaosProfile(context.userId!, voteType, previousVoteType, context);
+    // CRITICAL FIX: Update the CHOICE MAKER's profile, not the voter's profile
+    const choiceMakerId = historyEntry.chosenBy;
+    const choiceMakerUsername = historyEntry.chosenByUsername;
+    
+    console.log(`Updating chaos profile for choice maker: ${choiceMakerId} (${choiceMakerUsername})`);
+    
+    // Update the choice maker's chaos profile
+    const choiceMakerProfile = await updateUserChaosProfile(
+      choiceMakerId, 
+      voteType, 
+      previousVoteType, 
+      { redis: context.redis, username: choiceMakerUsername }
+    );
+
+    // Get the voter's profile (for display purposes)
+    const voterProfileResult = await getUserChaosProfile(context.userId, context);
+    let voterProfile: UserChaosProfile;
+    if (voterProfileResult.status === 'success') {
+      voterProfile = voterProfileResult.profile;
+    } else {
+      // Create basic voter profile if it doesn't exist
+      voterProfile = {
+        userId: context.userId,
+        username: context.username,
+        totalChaosVotes: 0,
+        chaosContributions: { mild: 0, wild: 0, insane: 0 },
+        globalChaosLevel: 0,
+        lastUpdated: Date.now()
+      };
+      await context.redis.set(getUserChaosProfileKey(context.userId), JSON.stringify(voterProfile));
+    }
 
     // Save updated game
     await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
 
-    // Update leaderboard
-    await updateLeaderboard(userProfile, context);
+    // Update leaderboard with the choice maker's updated profile
+    await updateLeaderboard(choiceMakerProfile, context);
 
-    console.log(`Vote processed successfully. Final chaos votes:`, historyEntry.chaosVotes);
+    console.log(`Vote processed successfully. Choice maker ${choiceMakerId} received ${voteType} chaos points.`);
 
-    return { status: 'success', historyEntry, userProfile };
+    return { 
+      status: 'success', 
+      historyEntry, 
+      userProfile: voterProfile // Return voter's profile for UI updates
+    };
   } catch (error) {
     console.error('Error voting on history choice:', error);
     return { status: 'error', message: 'Failed to process chaos vote' };
@@ -609,20 +642,20 @@ async function updateUserChaosProfile(
     };
   }
 
-  console.log(`Updating user profile. Previous vote: ${previousVoteType}, New vote: ${newVoteType}`);
+  console.log(`Updating choice maker profile. Previous vote received: ${previousVoteType}, New vote received: ${newVoteType}`);
   console.log('Profile before update:', JSON.stringify(profile.chaosContributions));
 
-  // Handle vote changes properly
+  // Handle vote changes properly - this represents chaos points the user RECEIVED for their choices
   if (previousVoteType) {
-    // User is changing their vote, so remove the previous vote count
+    // Someone changed their vote on this user's choice, so remove the previous chaos points
     profile.chaosContributions[previousVoteType] = Math.max(0, profile.chaosContributions[previousVoteType] - 1);
     // Don't change totalChaosVotes since we're replacing, not adding
   } else {
-    // User is voting for the first time on this choice
+    // Someone voted on this user's choice for the first time
     profile.totalChaosVotes += 1;
   }
 
-  // Add the new vote
+  // Add the new chaos points
   profile.chaosContributions[newVoteType] += 1;
 
   console.log('Profile after update:', JSON.stringify(profile.chaosContributions));
@@ -638,7 +671,7 @@ async function updateUserChaosProfile(
   // Save updated profile
   await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(profile));
   
-  console.log(`User profile updated. New global chaos level: ${profile.globalChaosLevel}`);
+  console.log(`Choice maker profile updated. New global chaos level: ${profile.globalChaosLevel}`);
   
   return profile;
 }
