@@ -400,7 +400,7 @@ body::after {
 /* Buttons */
 .primary-btn, .secondary-btn {
     background: var(--gradient-cyber);
-    color: var(--text-dark);
+    color: white;
     border: 2px solid var(--neon-cyan);
     padding: var(--spacing-md) var(--spacing-lg);
     font-size: 1rem;
