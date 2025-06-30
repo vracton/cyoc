@@ -1,4 +1,4 @@
-import { Devvit, useWebView } from '@devvit/public-api';
+import { Devvit, useWebView, useState } from '@devvit/public-api';
 import { createChaosGame, getChaosGame, makeChaosChoice, voteOnHistoryChoice, getUserChaosProfile, getChaosLeaderboard } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
@@ -65,7 +65,7 @@ const formConfig = {
 };
 
 // Enhanced Preview component that shows story content
-export const Preview: Devvit.BlockComponent<{ postId?: string }> = async (props, context) => {
+export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, context) => {
   const { postId, redis } = context;
   
   if (!postId) {
@@ -87,151 +87,30 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = async (props,
     );
   }
   
-  try {
-    // Get game ID from post
-    const gameId = await redis.get(`post_game:${postId}`);
-    if (!gameId) {
-      // No game associated with this post
-      return (
-        <zstack width={'100%'} height={'100%'} alignment="center middle">
-          <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-            <text size="xxlarge" weight="bold" alignment="center middle" wrap>
-              🎲 Choose Your Own Chaos
-            </text>
-            <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-              Interactive storytelling awaits
-            </text>
-            <text size="small" color="accent" alignment="center middle" wrap>
-              Click to create or play stories
-            </text>
-          </vstack>
-        </zstack>
-      );
+  // Use useState for async operations
+  const [gameData] = useState(async () => {
+    try {
+      // Get game ID from post
+      const gameId = await redis.get(`post_game:${postId}`);
+      if (!gameId) {
+        return null;
+      }
+      
+      // Get game data
+      const gameResult = await getChaosGame(gameId, { redis });
+      if (gameResult.status !== 'success') {
+        return null;
+      }
+      
+      return gameResult.game;
+    } catch (error) {
+      console.error('Error in Preview component:', error);
+      return null;
     }
-    
-    // Get game data
-    const gameResult = await getChaosGame(gameId, { redis });
-    if (gameResult.status !== 'success') {
-      // Error loading game
-      return (
-        <zstack width={'100%'} height={'100%'} alignment="center middle">
-          <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-            <text size="xxlarge" weight="bold" alignment="center middle" wrap>
-              🎲 Choose Your Own Chaos
-            </text>
-            <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-              Story loading error
-            </text>
-            <text size="small" color="accent" alignment="center middle" wrap>
-              Click to try again
-            </text>
-          </vstack>
-        </zstack>
-      );
-    }
-    
-    const gameData = gameResult.game;
-    const scene = gameData.currentScene;
-    const isEnding = scene.isEnding;
-    const storyProgress = gameData.storyHistory.length;
-    
-    return (
-      <zstack width={'100%'} height={'100%'} alignment="top start">
-        <vstack width={'100%'} height={'100%'} gap="small" padding="medium">
-          {/* Header */}
-          <hstack width={'100%'} alignment="space-between middle">
-            <text size="large" weight="bold" color="accent" wrap>
-              🎲 {gameData.title}
-            </text>
-            <text size="small" color="neutral-content-weak">
-              Scene {storyProgress + 1}
-            </text>
-          </hstack>
-          
-          {/* Story Status */}
-          <hstack width={'100%'} gap="small" alignment="start middle">
-            <text size="small" color="neutral-content-weak">
-              Chaos Level {gameData.chaosLevel}/5
-            </text>
-            <text size="small" color="neutral-content-weak">
-              •
-            </text>
-            <text size="small" color="neutral-content-weak">
-              {storyProgress} choices made
-            </text>
-            {isEnding && (
-              <>
-                <text size="small" color="neutral-content-weak">•</text>
-                <text size="small" color="accent">ENDING</text>
-              </>
-            )}
-          </hstack>
-          
-          {/* Current Scene */}
-          <vstack width={'100%'} gap="small">
-            <text size="medium" weight="bold" color="neutral-content" wrap>
-              {scene.title}
-            </text>
-            <text size="small" color="neutral-content-weak" wrap>
-              {scene.description.length > 150 
-                ? scene.description.substring(0, 150) + '...' 
-                : scene.description}
-            </text>
-          </vstack>
-          
-          {/* Choices Preview */}
-          {!isEnding && scene.choices && scene.choices.length > 0 && (
-            <vstack width={'100%'} gap="small">
-              <text size="small" weight="bold" color="neutral-content">
-                What happens next?
-              </text>
-              <vstack width={'100%'} gap="small">
-                {scene.choices.slice(0, 2).map((choice: any, index: number) => (
-                  <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
-                    <text size="small" color="accent" weight="bold">
-                      [{index + 1}]
-                    </text>
-                    <text size="small" color="neutral-content-weak" wrap>
-                      {choice.text.length > 60 
-                        ? choice.text.substring(0, 60) + '...' 
-                        : choice.text}
-                    </text>
-                  </hstack>
-                ))}
-                {scene.choices.length > 2 && (
-                  <text size="small" color="neutral-content-weak" style="italic">
-                    +{scene.choices.length - 2} more choices...
-                  </text>
-                )}
-              </vstack>
-            </vstack>
-          )}
-          
-          {/* Ending Message */}
-          {isEnding && (
-            <vstack width={'100%'} gap="small" alignment="center middle">
-              <text size="medium" weight="bold" color="accent">
-                🎭 Story Complete!
-              </text>
-              <text size="small" color="neutral-content-weak" alignment="center middle">
-                This adventure has reached its conclusion
-              </text>
-            </vstack>
-          )}
-          
-          {/* Call to Action */}
-          <spacer size="small" />
-          <hstack width={'100%'} alignment="center middle">
-            <text size="small" color="accent" weight="bold">
-              {isEnding ? 'View Full Story' : 'Continue the Adventure'} →
-            </text>
-          </hstack>
-        </vstack>
-      </zstack>
-    );
-  } catch (error) {
-    console.error('Error in Preview component:', error);
-    // Fallback preview
+  });
+
+  if (!gameData) {
+    // No game data or loading - show generic preview
     return (
       <zstack width={'100%'} height={'100%'} alignment="center middle">
         <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
@@ -242,16 +121,115 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = async (props,
             Interactive storytelling awaits
           </text>
           <text size="small" color="accent" alignment="center middle" wrap>
-            Click to enter the chaos
+            Click to create or play stories
           </text>
         </vstack>
       </zstack>
     );
   }
+  
+  const scene = gameData.currentScene;
+  const isEnding = scene.isEnding;
+  const storyProgress = gameData.storyHistory.length;
+  
+  return (
+    <zstack width={'100%'} height={'100%'} alignment="top start">
+      <vstack width={'100%'} height={'100%'} gap="small" padding="medium">
+        {/* Header */}
+        <hstack width={'100%'} alignment="space-between middle">
+          <text size="large" weight="bold" color="accent" wrap>
+            🎲 {gameData.title}
+          </text>
+          <text size="small" color="neutral-content-weak">
+            Scene {storyProgress + 1}
+          </text>
+        </hstack>
+        
+        {/* Story Status */}
+        <hstack width={'100%'} gap="small" alignment="start middle">
+          <text size="small" color="neutral-content-weak">
+            Chaos Level {gameData.chaosLevel}/5
+          </text>
+          <text size="small" color="neutral-content-weak">
+            •
+          </text>
+          <text size="small" color="neutral-content-weak">
+            {storyProgress} choices made
+          </text>
+          {isEnding && (
+            <>
+              <text size="small" color="neutral-content-weak">•</text>
+              <text size="small" color="accent">ENDING</text>
+            </>
+          )}
+        </hstack>
+        
+        {/* Current Scene */}
+        <vstack width={'100%'} gap="small">
+          <text size="medium" weight="bold" color="neutral-content" wrap>
+            {scene.title}
+          </text>
+          <text size="small" color="neutral-content-weak" wrap>
+            {scene.description.length > 150 
+              ? scene.description.substring(0, 150) + '...' 
+              : scene.description}
+          </text>
+        </vstack>
+        
+        {/* Choices Preview */}
+        {!isEnding && scene.choices && scene.choices.length > 0 && (
+          <vstack width={'100%'} gap="small">
+            <text size="small" weight="bold" color="neutral-content">
+              What happens next?
+            </text>
+            <vstack width={'100%'} gap="small">
+              {scene.choices.slice(0, 2).map((choice: any, index: number) => (
+                <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
+                  <text size="small" color="accent" weight="bold">
+                    [{index + 1}]
+                  </text>
+                  <text size="small" color="neutral-content-weak" wrap>
+                    {choice.text.length > 60 
+                      ? choice.text.substring(0, 60) + '...' 
+                      : choice.text}
+                  </text>
+                </hstack>
+              ))}
+              {scene.choices.length > 2 && (
+                <text size="small" color="neutral-content-weak" style="italic">
+                  +{scene.choices.length - 2} more choices...
+                </text>
+              )}
+            </vstack>
+          </vstack>
+        )}
+        
+        {/* Ending Message */}
+        {isEnding && (
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="medium" weight="bold" color="accent">
+              🎭 Story Complete!
+            </text>
+            <text size="small" color="neutral-content-weak" alignment="center middle">
+              This adventure has reached its conclusion
+            </text>
+          </vstack>
+        )}
+        
+        {/* Call to Action */}
+        <spacer size="small" />
+        <hstack width={'100%'} alignment="center middle">
+          <text size="small" color="accent" weight="bold">
+            {isEnding ? 'View Full Story' : 'Continue the Adventure'} →
+          </text>
+        </hstack>
+      </vstack>
+    </zstack>
+  );
 };
 
 // Main App Component with Web View - Updated to show story preview instead of simple "Enter" button
-const App: Devvit.BlockComponent = async (context) => {
+const App: Devvit.BlockComponent = (context) => {
   const { postId, userId, reddit, redis } = context;
 
   const { mount } = useWebView<WebViewMessage, DevvitMessage>({
@@ -509,23 +487,28 @@ const App: Devvit.BlockComponent = async (context) => {
     },
   });
 
-  // Check if there's already a game associated with this post for the preview
-  let gameId = null;
-  let gameData = null;
-  
-  if (postId) {
+  // Use useState for async operations to load game data for preview
+  const [gameData] = useState(async () => {
+    if (!postId) {
+      return null;
+    }
+    
     try {
-      gameId = await redis.get(`post_game:${postId}`);
-      if (gameId) {
-        const gameResult = await getChaosGame(gameId, { redis });
-        if (gameResult.status === 'success') {
-          gameData = gameResult.game;
-        }
+      const gameId = await redis.get(`post_game:${postId}`);
+      if (!gameId) {
+        return null;
+      }
+      
+      const gameResult = await getChaosGame(gameId, { redis });
+      if (gameResult.status === 'success') {
+        return gameResult.game;
       }
     } catch (error) {
       console.error('Error loading game for preview:', error);
     }
-  }
+    
+    return null;
+  });
 
   if (gameData) {
     // Show story preview with current scene and choices
