@@ -32,6 +32,325 @@ body {
     display: none;
 }
 
+/* Leaderboard Button - Fixed Position */
+.leaderboard-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: 2px solid #ffff00;
+    color: #ffff00;
+    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+    animation: leaderboardPulse 3s ease-in-out infinite;
+}
+
+.leaderboard-btn:hover {
+    background: #ffff00;
+    color: #000;
+    box-shadow: 0 0 25px #ffff00;
+    transform: scale(1.1);
+}
+
+@keyframes leaderboardPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 255, 0, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(255, 255, 0, 0.6); }
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #0a0a0a;
+    border: 2px solid #ffff00;
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 0 30px #ffff00;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 2px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 0, 0.1);
+}
+
+.modal-header h2 {
+    color: #ffff00;
+    font-size: 1.5rem;
+    text-shadow: 0 0 10px #ffff00;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.close-btn {
+    background: transparent;
+    border: 1px solid #ff0080;
+    color: #ff0080;
+    font-size: 1.2rem;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: #ff0080;
+    color: #000;
+    box-shadow: 0 0 10px #ff0080;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Leaderboard Content */
+.leaderboard-content {
+    min-height: 200px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+}
+
+.loading-spinner .spinner {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #003300;
+    border-top: 2px solid #00ff00;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.loading-spinner p {
+    color: #00ff00;
+    font-size: 1rem;
+}
+
+.empty-leaderboard {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.empty-leaderboard p {
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.error-message {
+    text-align: center;
+    padding: 40px;
+    color: #ff0080;
+}
+
+.error-message p {
+    margin-bottom: 10px;
+}
+
+/* Leaderboard List */
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.leaderboard-entry {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+    transition: all 0.3s;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.leaderboard-entry:hover {
+    border-color: #00ff00;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+}
+
+.leaderboard-entry.current-user {
+    border-color: #ffff00;
+    background: rgba(255, 255, 0, 0.1);
+    box-shadow: 0 0 20px rgba(255, 255, 0, 0.3);
+}
+
+.rank-section {
+    min-width: 60px;
+    text-align: center;
+}
+
+.rank-icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffff00;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+.user-section {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.username {
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px #00ffff;
+}
+
+.you-indicator {
+    color: #ffff00;
+    font-size: 0.8rem;
+    margin-left: 10px;
+    font-weight: bold;
+    text-shadow: 0 0 5px #ffff00;
+}
+
+.stats-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    min-width: 150px;
+}
+
+.chaos-level {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chaos-value {
+    color: #ff00ff;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+.chaos-emoji {
+    font-size: 1.2rem;
+}
+
+.vote-breakdown {
+    display: flex;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.vote-stat {
+    color: #666;
+    padding: 2px 6px;
+    border: 1px solid #333;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.total-votes {
+    display: flex;
+    gap: 5px;
+    font-size: 0.8rem;
+}
+
+.total-label {
+    color: #666;
+}
+
+.total-value {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+/* Leaderboard Legend */
+.leaderboard-legend {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px solid #333;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-legend h3 {
+    color: #00ffff;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1rem;
+    text-shadow: 0 0 5px #00ffff;
+}
+
+.legend-items {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.legend-emoji {
+    font-size: 1rem;
+}
+
+.legend-text {
+    color: #999;
+}
+
 /* Loading Screen */
 .loading-content {
     text-align: center;
@@ -650,6 +969,14 @@ body {
         font-size: 0.8rem;
     }
     
+    .leaderboard-btn {
+        top: 15px;
+        right: 15px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+    
     .game-info {
         flex-direction: column;
         gap: 5px;
@@ -683,6 +1010,51 @@ body {
     .user-chaos-profile {
         flex-direction: column;
         gap: 5px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .modal-header {
+        padding: 15px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .modal-body {
+        padding: 15px;
+        max-height: 70vh;
+    }
+    
+    .leaderboard-entry {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .rank-section {
+        min-width: auto;
+        text-align: left;
+    }
+    
+    .user-section {
+        padding: 0;
+    }
+    
+    .stats-section {
+        align-items: flex-start;
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .legend-items {
+        flex-direction: column;
+        align-items: center;
     }
 }
 

@@ -6,6 +6,7 @@ import { ChaosGame, GameScene, ChaosLevel, StoryHistoryEntry, ChaosVotes, ChaosV
 const getChaosGameKey = (gameId: string) => `chaos_game:${gameId}` as const;
 const getGamesByUserKey = (userId: string) => `user_games:${userId}` as const;
 const getUserChaosProfileKey = (userId: string) => `user_chaos_profile:${userId}` as const;
+const getChaosLeaderboardKey = () => 'chaos_leaderboard' as const;
 
 // Gemini service functions
 function getChaosLevelDescription(level: ChaosLevel): string {
@@ -504,6 +505,9 @@ export async function voteOnHistoryChoice(
     // Save updated game
     await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
 
+    // Update leaderboard
+    await updateLeaderboard(userProfile, context);
+
     return { status: 'success', historyEntry, userProfile };
   } catch (error) {
     console.error('Error voting on history choice:', error);
@@ -537,6 +541,24 @@ export async function getUserChaosProfile(
   } catch (error) {
     console.error('Error getting user chaos profile:', error);
     return { status: 'error', message: 'Failed to retrieve user profile' };
+  }
+}
+
+export async function getChaosLeaderboard(
+  context: { redis: RedisClient }
+): Promise<{ status: 'success'; leaderboard: UserChaosProfile[] } | { status: 'error'; message: string }> {
+  try {
+    const leaderboardData = await context.redis.get(getChaosLeaderboardKey());
+    
+    if (!leaderboardData) {
+      return { status: 'success', leaderboard: [] };
+    }
+    
+    const leaderboard = JSON.parse(leaderboardData);
+    return { status: 'success', leaderboard };
+  } catch (error) {
+    console.error('Error getting chaos leaderboard:', error);
+    return { status: 'error', message: 'Failed to retrieve leaderboard' };
   }
 }
 
@@ -576,4 +598,40 @@ async function updateUserChaosProfile(
   await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(profile));
   
   return profile;
+}
+
+async function updateLeaderboard(
+  userProfile: UserChaosProfile,
+  context: { redis: RedisClient }
+): Promise<void> {
+  try {
+    const leaderboardResult = await getChaosLeaderboard(context);
+    let leaderboard: UserChaosProfile[] = [];
+    
+    if (leaderboardResult.status === 'success') {
+      leaderboard = leaderboardResult.leaderboard;
+    }
+    
+    // Remove existing entry for this user
+    leaderboard = leaderboard.filter(profile => profile.userId !== userProfile.userId);
+    
+    // Add updated profile
+    leaderboard.push(userProfile);
+    
+    // Sort by global chaos level (descending), then by total votes (descending)
+    leaderboard.sort((a, b) => {
+      if (b.globalChaosLevel !== a.globalChaosLevel) {
+        return b.globalChaosLevel - a.globalChaosLevel;
+      }
+      return b.totalChaosVotes - a.totalChaosVotes;
+    });
+    
+    // Keep only top 100 users
+    leaderboard = leaderboard.slice(0, 100);
+    
+    // Save updated leaderboard
+    await context.redis.set(getChaosLeaderboardKey(), JSON.stringify(leaderboard));
+  } catch (error) {
+    console.error('Error updating leaderboard:', error);
+  }
 }

@@ -1,5 +1,5 @@
 import { Devvit, useWebView } from '@devvit/public-api';
-import { createChaosGame, getChaosGame, makeChaosChoice, voteOnHistoryChoice, getUserChaosProfile } from './server/chaos-game.server.js';
+import { createChaosGame, getChaosGame, makeChaosChoice, voteOnHistoryChoice, getUserChaosProfile, getChaosLeaderboard } from './server/chaos-game.server.js';
 
 // Configure Devvit to enable required features
 Devvit.configure({ 
@@ -16,6 +16,7 @@ export type DevvitMessage =
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
   | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
   | { type: 'chaosVoteResult'; data: { status: 'success'; historyEntry: any; userProfile: any } | { status: 'error'; message: string } }
+  | { type: 'leaderboardData'; data: { status: 'success'; leaderboard: any[] } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
@@ -23,7 +24,8 @@ export type WebViewMessage =
   | { type: 'showCreateForm' }
   | { type: 'getGame'; data: { gameId: string } }
   | { type: 'makeChoice'; data: { gameId: string; choiceId: string } }
-  | { type: 'voteHistoryChaos'; data: { gameId: string; historyIndex: number; voteType: string } };
+  | { type: 'voteHistoryChaos'; data: { gameId: string; historyIndex: number; voteType: string } }
+  | { type: 'getLeaderboard' };
 
 // Form configuration for creating chaos stories
 const formConfig = {
@@ -229,6 +231,25 @@ const App: Devvit.BlockComponent = (context) => {
           webView.postMessage({
             type: 'chaosVoteResult',
             data: { status: 'error', message: 'Failed to process chaos vote' }
+          });
+        }
+      } else if (message.type === 'getLeaderboard') {
+        // Handle leaderboard request
+        try {
+          console.log('Processing leaderboard request');
+          
+          const result = await getChaosLeaderboard({ redis });
+          console.log('Leaderboard result:', result);
+          
+          webView.postMessage({
+            type: 'leaderboardData',
+            data: result
+          });
+        } catch (error) {
+          console.error('Error getting leaderboard:', error);
+          webView.postMessage({
+            type: 'leaderboardData',
+            data: { status: 'error', message: 'Failed to load leaderboard' }
           });
         }
       } else if (message.type === 'showCreateForm') {

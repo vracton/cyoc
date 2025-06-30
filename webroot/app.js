@@ -6,7 +6,8 @@ let gameState = {
   gameMode: 'menu', // 'menu' or 'play'
   message: '',
   makingChoice: false,
-  userProfile: null
+  userProfile: null,
+  leaderboardData: null
 };
 
 // DOM elements
@@ -40,7 +41,11 @@ function initializeElements() {
     choicesContainer: document.getElementById('choices'),
     storyHistoryContainer: document.getElementById('story-history'),
     endingScreen: document.getElementById('ending'),
-    userProfileContainer: document.getElementById('user-profile')
+    userProfileContainer: document.getElementById('user-profile'),
+    leaderboardBtn: document.getElementById('leaderboard-btn'),
+    leaderboardModal: document.getElementById('leaderboard-modal'),
+    closeLeaderboardBtn: document.getElementById('close-leaderboard'),
+    leaderboardContent: document.getElementById('leaderboard-content')
   };
 }
 
@@ -53,6 +58,25 @@ function setupEventListeners() {
   // Back to menu button
   if (elements.backToMenuBtn) {
     elements.backToMenuBtn.addEventListener('click', handleBackToMenu);
+  }
+  
+  // Leaderboard button
+  if (elements.leaderboardBtn) {
+    elements.leaderboardBtn.addEventListener('click', handleLeaderboardClick);
+  }
+  
+  // Close leaderboard button
+  if (elements.closeLeaderboardBtn) {
+    elements.closeLeaderboardBtn.addEventListener('click', closeLeaderboard);
+  }
+  
+  // Close modal when clicking outside
+  if (elements.leaderboardModal) {
+    elements.leaderboardModal.addEventListener('click', (e) => {
+      if (e.target === elements.leaderboardModal) {
+        closeLeaderboard();
+      }
+    });
   }
   
   // Listen for messages from Devvit
@@ -86,6 +110,9 @@ function handleDevvitMessage(event) {
         break;
       case 'chaosVoteResult':
         handleChaosVoteResult(message.data);
+        break;
+      case 'leaderboardData':
+        handleLeaderboardData(message.data);
         break;
       case 'error':
         handleError(message.data);
@@ -199,6 +226,23 @@ function handleChaosVoteResult(data) {
   }
 }
 
+function handleLeaderboardData(data) {
+  console.log('Leaderboard data received:', data);
+  
+  if (data.status === 'success') {
+    gameState.leaderboardData = data.leaderboard;
+    displayLeaderboard();
+  } else {
+    console.error('Failed to load leaderboard:', data.message);
+    elements.leaderboardContent.innerHTML = `
+      <div class="error-message">
+        <p>> ERROR: FAILED TO ACCESS CHAOS DATABASE</p>
+        <p>> ${data.message}</p>
+      </div>
+    `;
+  }
+}
+
 function handleError(data) {
   console.error('Received error from Devvit:', data);
   gameState.message = `> SYSTEM ERROR: ${data.message}`;
@@ -214,6 +258,110 @@ function handleBackToMenu() {
   gameState.gameMode = 'menu';
   gameState.currentGame = null;
   showMenuScreen();
+}
+
+function handleLeaderboardClick() {
+  console.log('Leaderboard button clicked');
+  showLeaderboard();
+  // Request leaderboard data from Devvit
+  sendMessageToDevvit({ type: 'getLeaderboard' });
+}
+
+function showLeaderboard() {
+  elements.leaderboardModal.classList.remove('hidden');
+  // Reset content to loading state
+  elements.leaderboardContent.innerHTML = `
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>> ACCESSING CHAOS DATABASE...</p>
+    </div>
+  `;
+}
+
+function closeLeaderboard() {
+  elements.leaderboardModal.classList.add('hidden');
+}
+
+function displayLeaderboard() {
+  if (!gameState.leaderboardData) return;
+  
+  const leaderboard = gameState.leaderboardData;
+  
+  if (leaderboard.length === 0) {
+    elements.leaderboardContent.innerHTML = `
+      <div class="empty-leaderboard">
+        <p>> NO CHAOS AGENTS DETECTED</p>
+        <p>> BE THE FIRST TO VOTE AND CLAIM YOUR PLACE</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '<div class="leaderboard-list">';
+  
+  leaderboard.forEach((user, index) => {
+    const rank = index + 1;
+    const chaosEmoji = getChaosEmoji(user.globalChaosLevel);
+    const isCurrentUser = gameState.initialData?.userId === user.userId;
+    
+    let rankIcon = '';
+    if (rank === 1) rankIcon = '👑';
+    else if (rank === 2) rankIcon = '🥈';
+    else if (rank === 3) rankIcon = '🥉';
+    else rankIcon = `#${rank}`;
+    
+    html += `
+      <div class="leaderboard-entry ${isCurrentUser ? 'current-user' : ''}">
+        <div class="rank-section">
+          <span class="rank-icon">${rankIcon}</span>
+        </div>
+        <div class="user-section">
+          <span class="username">u/${user.username || 'UNKNOWN_USER'}</span>
+          ${isCurrentUser ? '<span class="you-indicator">(YOU)</span>' : ''}
+        </div>
+        <div class="stats-section">
+          <div class="chaos-level">
+            <span class="chaos-value">${user.globalChaosLevel.toFixed(1)}</span>
+            <span class="chaos-emoji">${chaosEmoji}</span>
+          </div>
+          <div class="vote-breakdown">
+            <span class="vote-stat">🥴 ${user.chaosContributions.mild}</span>
+            <span class="vote-stat">🤯 ${user.chaosContributions.wild}</span>
+            <span class="vote-stat">🤡 ${user.chaosContributions.insane}</span>
+          </div>
+          <div class="total-votes">
+            <span class="total-label">TOTAL:</span>
+            <span class="total-value">${user.totalChaosVotes}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  // Add legend
+  html += `
+    <div class="leaderboard-legend">
+      <h3>> CHAOS SCALE LEGEND</h3>
+      <div class="legend-items">
+        <div class="legend-item">
+          <span class="legend-emoji">🥴</span>
+          <span class="legend-text">MILD CHAOS (1.0-1.4)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-emoji">🤯</span>
+          <span class="legend-text">WILD CHAOS (1.5-2.4)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-emoji">🤡</span>
+          <span class="legend-text">INSANE CHAOS (2.5-3.0)</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  elements.leaderboardContent.innerHTML = html;
 }
 
 function makeChoice(choiceId) {

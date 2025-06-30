@@ -8,6 +8,29 @@
 </head>
 <body>
     <div id="app">
+        <!-- Leaderboard Icon - Fixed Position -->
+        <button id="leaderboard-btn" class="leaderboard-btn" title="View Chaos Leaderboard">
+            🏆
+        </button>
+
+        <!-- Leaderboard Modal -->
+        <div id="leaderboard-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🏆 CHAOS AGENT LEADERBOARD</h2>
+                    <button id="close-leaderboard" class="close-btn">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="leaderboard-content" class="leaderboard-content">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>> ACCESSING CHAOS DATABASE...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="loading" class="screen">
             <div class="loading-content">
                 <h1>CHOOSE YOUR OWN CHAOS</h1>
