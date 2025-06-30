@@ -14,7 +14,7 @@ export type DevvitMessage =
   | { type: 'initialData'; data: { postId: string; userId?: string; gameId?: string; game?: any } }
   | { type: 'gameCreated'; data: { gameId: string; game: any } }
   | { type: 'gameData'; data: { status: 'success'; game: any } | { status: 'error'; message: string } }
-  | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string; game?: any; scene?: any } }
+  | { type: 'choiceResult'; data: { status: 'success'; scene: any; game: any } | { status: 'error'; message: string } }
   | { type: 'error'; data: { message: string } };
 
 export type WebViewMessage =
