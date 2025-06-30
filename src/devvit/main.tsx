@@ -72,15 +72,23 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
     // No post ID - show generic preview
     return (
       <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <image 
+          url="https://i.imgur.com/neon-bg.png" 
+          imageWidth={400} 
+          imageHeight={300} 
+          width={'100%'} 
+          height={'100%'} 
+          resizeMode="cover"
+        />
         <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-          <text size="xxlarge" weight="bold" alignment="center middle" wrap>
-            🎲 Choose Your Own Chaos
+          <text size="xxlarge" weight="bold" alignment="center middle" wrap color="#00FFFF">
+            🎲 CHOOSE YOUR OWN CHAOS
           </text>
-          <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-            Interactive storytelling awaits
+          <text size="medium" color="#CCCCCC" alignment="center middle" wrap>
+            INTERACTIVE STORYTELLING AWAITS
           </text>
-          <text size="small" color="accent" alignment="center middle" wrap>
-            Click to create or play stories
+          <text size="small" color="#FF00FF" alignment="center middle" wrap>
+            CLICK TO CREATE OR PLAY STORIES
           </text>
         </vstack>
       </zstack>
@@ -113,15 +121,23 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
     // No game data or loading - show generic preview
     return (
       <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <image 
+          url="https://i.imgur.com/neon-bg.png" 
+          imageWidth={400} 
+          imageHeight={300} 
+          width={'100%'} 
+          height={'100%'} 
+          resizeMode="cover"
+        />
         <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-          <text size="xxlarge" weight="bold" alignment="center middle" wrap>
-            🎲 Choose Your Own Chaos
+          <text size="xxlarge" weight="bold" alignment="center middle" wrap color="#00FFFF">
+            🎲 CHOOSE YOUR OWN CHAOS
           </text>
-          <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-            Interactive storytelling awaits
+          <text size="medium" color="#CCCCCC" alignment="center middle" wrap>
+            INTERACTIVE STORYTELLING AWAITS
           </text>
-          <text size="small" color="accent" alignment="center middle" wrap>
-            Click to create or play stories
+          <text size="small" color="#FF00FF" alignment="center middle" wrap>
+            CLICK TO CREATE OR PLAY STORIES
           </text>
         </vstack>
       </zstack>
@@ -134,45 +150,53 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
   
   return (
     <zstack width={'100%'} height={'100%'} alignment="top start">
+      <image 
+        url="https://i.imgur.com/neon-bg.png" 
+        imageWidth={400} 
+        imageHeight={300} 
+        width={'100%'} 
+        height={'100%'} 
+        resizeMode="cover"
+      />
       <vstack width={'100%'} height={'100%'} gap="small" padding="medium">
         {/* Header */}
         <hstack width={'100%'} alignment="space-between middle">
-          <text size="large" weight="bold" color="accent" wrap>
+          <text size="large" weight="bold" color="#FF00FF" wrap>
             {gameData.title}
           </text>
-          <text size="small" color="neutral-content-weak">
+          <text size="small" color="#FFFF00">
             •
           </text>
-          <text size="small" color="neutral-content-weak">
+          <text size="small" color="#FFFF00">
             Scene {storyProgress + 1}
           </text>
         </hstack>
         
         {/* Story Status */}
         <hstack width={'100%'} gap="small" alignment="start middle">
-          <text size="small" color="neutral-content-weak">
+          <text size="small" color="#CCCCCC">
             Chaos Level {gameData.chaosLevel}/5
           </text>
-          <text size="small" color="neutral-content-weak">
+          <text size="small" color="#CCCCCC">
             •
           </text>
-          <text size="small" color="neutral-content-weak">
+          <text size="small" color="#CCCCCC">
             {storyProgress} choices made
           </text>
           {isEnding && (
             <>
-              <text size="small" color="neutral-content-weak">•</text>
-              <text size="small" color="accent">ENDING</text>
+              <text size="small" color="#CCCCCC">•</text>
+              <text size="small" color="#FF0080">ENDING</text>
             </>
           )}
         </hstack>
         
         {/* Current Scene */}
         <vstack width={'100%'} gap="small">
-          <text size="medium" weight="bold" color="neutral-content" wrap>
+          <text size="medium" weight="bold" color="#00FFFF" wrap>
             {scene.title}
           </text>
-          <text size="small" color="neutral-content-weak" wrap>
+          <text size="small" color="#CCCCCC" wrap>
             {scene.description.length > 150 
               ? scene.description.substring(0, 150) + '...' 
               : scene.description}
@@ -182,16 +206,16 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Choices Preview */}
         {!isEnding && scene.choices && scene.choices.length > 0 && (
           <vstack width={'100%'} gap="small">
-            <text size="small" weight="bold" color="neutral-content">
+            <text size="small" weight="bold" color="#00FFFF">
               What happens next?
             </text>
             <vstack width={'100%'} gap="small">
               {scene.choices.slice(0, 2).map((choice: any, index: number) => (
                 <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
-                  <text size="small" color="accent" weight="bold">
+                  <text size="small" color="#FFFF00" weight="bold">
                     [{index + 1}]
                   </text>
-                  <text size="small" color="neutral-content-weak" wrap>
+                  <text size="small" color="#CCCCCC" wrap>
                     {choice.text.length > 60 
                       ? choice.text.substring(0, 60) + '...' 
                       : choice.text}
@@ -199,7 +223,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
                 </hstack>
               ))}
               {scene.choices.length > 2 && (
-                <text size="small" color="neutral-content-weak" style="italic">
+                <text size="small" color="#CCCCCC" style="italic">
                   +{scene.choices.length - 2} more choices...
                 </text>
               )}
@@ -210,10 +234,10 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Ending Message */}
         {isEnding && (
           <vstack width={'100%'} gap="small" alignment="center middle">
-            <text size="medium" weight="bold" color="accent">
+            <text size="medium" weight="bold" color="#FF0080">
               🎭 Story Complete!
             </text>
-            <text size="small" color="neutral-content-weak" alignment="center middle">
+            <text size="small" color="#CCCCCC" alignment="center middle">
               This adventure has reached its conclusion
             </text>
           </vstack>
@@ -222,7 +246,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
         {/* Call to Action */}
         <spacer size="small" />
         <hstack width={'100%'} alignment="center middle">
-          <text size="small" color="accent" weight="bold">
+          <text size="small" color="#FF00FF" weight="bold">
             {isEnding ? 'View Full Story' : 'Continue the Chaos'} →
           </text>
         </hstack>
@@ -233,7 +257,7 @@ export const Preview: Devvit.BlockComponent<{ postId?: string }> = (props, conte
 
 // Main App Component with Web View - Updated to show story preview instead of simple "Enter" button
 const App: Devvit.BlockComponent = (context) => {
-  const { postId, userId, reddit, redis } = context;
+  const { postId, userId, reddit, redis, ui } = context;
 
   const { mount } = useWebView<WebViewMessage, DevvitMessage>({
     url: 'index.html',
@@ -399,83 +423,88 @@ const App: Devvit.BlockComponent = (context) => {
           });
         }
       } else if (message.type === 'showCreateForm') {
-        // Create a form specifically for this web view context
-        const createFormForWebView = Devvit.createForm(formConfig, async (event, formContext) => {
-          const { ui, redis: formRedis, reddit: formReddit } = formContext;
-          const values = event.values;
-
-          if (!values.title || !values.initialPrompt || !values.chaosLevel) {
-            ui.showToast({ text: 'Please fill in all fields!' });
-            return;
-          }
-
-          try {
-            console.log('Creating game with values:', values);
-            
-            // Get current user info
-            let username = undefined;
-            try {
-              if (userId) {
-                const user = await formReddit.getUserById(userId);
-                username = user.username;
-              }
-            } catch (error) {
-              console.error('Error getting username for game creation:', error);
-            }
-            
-            // Create the chaos game using server-side function
-            const result = await createChaosGame({
-              title: values.title as string,
-              initialPrompt: values.initialPrompt as string,
-              chaosLevel: parseInt(values.chaosLevel as string)
-            }, { redis: formRedis, userId, username, reddit: formReddit });
-
-            console.log('Game creation result:', result);
-
-            if (result.status === 'error') {
-              throw new Error(result.message);
-            }
-
-            // Store the game ID in the post config for later retrieval
-            if (postId) {
-              await formRedis.set(`post_game:${postId}`, result.gameId);
-              console.log('Stored game ID in post config:', postId, result.gameId);
-            }
-
-            // Get the complete game data to send to webview
-            const gameResult = await getChaosGame(result.gameId, { redis: formRedis });
-            let gameData = null;
-            if (gameResult.status === 'success') {
-              gameData = gameResult.game;
-            }
-
-            ui.showToast({ text: 'Chaos story created successfully!' });
-            
-            // Notify the web view that a game was created with complete game data
-            webView.postMessage({
-              type: 'gameCreated',
-              data: { 
-                gameId: result.gameId,
-                game: gameData
-              }
-            });
-            
-          } catch (error) {
-            console.error('Error creating chaos story:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            ui.showToast({ text: `Error creating story: ${errorMessage}` });
-            
-            // Notify web view of error
-            webView.postMessage({
-              type: 'error',
-              data: { message: errorMessage }
-            });
-          }
-        });
-
-        // Show the form
+        // Handle form display request from webview
+        console.log('Webview requested to show create form');
+        
         try {
-          context.ui.showForm(createFormForWebView);
+          // Create the form with proper context handling
+          const createForm = Devvit.createForm(formConfig, async (event, formContext) => {
+            const { ui: formUI, redis: formRedis, reddit: formReddit } = formContext;
+            const values = event.values;
+
+            if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+              formUI.showToast({ text: 'Please fill in all fields!' });
+              return;
+            }
+
+            try {
+              console.log('Creating game with values:', values);
+              
+              // Get current user info
+              let username = undefined;
+              try {
+                if (userId) {
+                  const user = await formReddit.getUserById(userId);
+                  username = user.username;
+                }
+              } catch (error) {
+                console.error('Error getting username for game creation:', error);
+              }
+              
+              // Create the chaos game using server-side function
+              const result = await createChaosGame({
+                title: values.title as string,
+                initialPrompt: values.initialPrompt as string,
+                chaosLevel: parseInt(values.chaosLevel as string)
+              }, { redis: formRedis, userId, username, reddit: formReddit });
+
+              console.log('Game creation result:', result);
+
+              if (result.status === 'error') {
+                throw new Error(result.message);
+              }
+
+              // Store the game ID in the post config for later retrieval
+              if (postId) {
+                await formRedis.set(`post_game:${postId}`, result.gameId);
+                console.log('Stored game ID in post config:', postId, result.gameId);
+              }
+
+              // Get the complete game data to send to webview
+              const gameResult = await getChaosGame(result.gameId, { redis: formRedis });
+              let gameData = null;
+              if (gameResult.status === 'success') {
+                gameData = gameResult.game;
+              }
+
+              formUI.showToast({ text: 'Chaos story created successfully!' });
+              
+              // Notify the web view that a game was created with complete game data
+              webView.postMessage({
+                type: 'gameCreated',
+                data: { 
+                  gameId: result.gameId,
+                  game: gameData
+                }
+              });
+              
+            } catch (error) {
+              console.error('Error creating chaos story:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+              formUI.showToast({ text: `Error creating story: ${errorMessage}` });
+              
+              // Notify web view of error
+              webView.postMessage({
+                type: 'error',
+                data: { message: errorMessage }
+              });
+            }
+          });
+
+          // Show the form using the context's UI
+          ui.showForm(createForm);
+          console.log('Form displayed successfully');
+          
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
@@ -520,103 +549,123 @@ const App: Devvit.BlockComponent = (context) => {
     const storyProgress = gameData.storyHistory.length;
     
     return (
-      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
-        {/* Header */}
-        <hstack width={'100%'} alignment="space-between middle">
-          <text size="large" weight="bold" color="accent" wrap>
-            🎲 {gameData.title}
-          </text>
-          <text size="small" color="neutral-content-weak">
-            Scene {storyProgress + 1}
-          </text>
-        </hstack>
-        
-        {/* Story Status */}
-        <hstack width={'100%'} gap="small" alignment="center middle">
-          <text size="small" color="neutral-content-weak">
-            Chaos Level {gameData.chaosLevel}/5
-          </text>
-          <text size="small" color="neutral-content-weak">
-            •
-          </text>
-          <text size="small" color="neutral-content-weak">
-            {storyProgress} choices made
-          </text>
-          {isEnding && (
-            <>
-              <text size="small" color="neutral-content-weak">•</text>
-              <text size="small" color="accent">ENDING</text>
-            </>
-          )}
-        </hstack>
-        
-        {/* Current Scene */}
-        <vstack width={'100%'} gap="small" alignment="center middle">
-          <text size="medium" weight="bold" color="neutral-content" wrap alignment="center middle">
-            {scene.title}
-          </text>
-          <text size="small" color="neutral-content-weak" wrap alignment="center middle">
-            {scene.description.length > 200 
-              ? scene.description.substring(0, 200) + '...' 
-              : scene.description}
-          </text>
-        </vstack>
-        
-        {/* Choices Preview */}
-        {!isEnding && scene.choices && scene.choices.length > 0 && (
-          <vstack width={'100%'} gap="small" alignment="center middle">
-            <text size="small" weight="bold" color="neutral-content" alignment="center middle">
-              What happens next?
+      <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <image 
+          url="https://i.imgur.com/neon-bg.png" 
+          imageWidth={400} 
+          imageHeight={300} 
+          width={'100%'} 
+          height={'100%'} 
+          resizeMode="cover"
+        />
+        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium" padding="large">
+          {/* Header */}
+          <hstack width={'100%'} alignment="space-between middle">
+            <text size="large" weight="bold" color="#FF00FF" wrap>
+              🎲 {gameData.title}
             </text>
+            <text size="small" color="#FFFF00">
+              Scene {storyProgress + 1}
+            </text>
+          </hstack>
+          
+          {/* Story Status */}
+          <hstack width={'100%'} gap="small" alignment="center middle">
+            <text size="small" color="#CCCCCC">
+              Chaos Level {gameData.chaosLevel}/5
+            </text>
+            <text size="small" color="#CCCCCC">
+              •
+            </text>
+            <text size="small" color="#CCCCCC">
+              {storyProgress} choices made
+            </text>
+            {isEnding && (
+              <>
+                <text size="small" color="#CCCCCC">•</text>
+                <text size="small" color="#FF0080">ENDING</text>
+              </>
+            )}
+          </hstack>
+          
+          {/* Current Scene */}
+          <vstack width={'100%'} gap="small" alignment="center middle">
+            <text size="medium" weight="bold" color="#00FFFF" wrap alignment="center middle">
+              {scene.title}
+            </text>
+            <text size="small" color="#CCCCCC" wrap alignment="center middle">
+              {scene.description.length > 200 
+                ? scene.description.substring(0, 200) + '...' 
+                : scene.description}
+            </text>
+          </vstack>
+          
+          {/* Choices Preview */}
+          {!isEnding && scene.choices && scene.choices.length > 0 && (
             <vstack width={'100%'} gap="small" alignment="center middle">
-              {scene.choices.map((choice: any, index: number) => (
-                <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
-                  <text size="small" color="accent" weight="bold">
-                    [{index + 1}]
-                  </text>
-                  <text size="small" color="neutral-content-weak" wrap>
-                    {choice.text.length > 80 
-                      ? choice.text.substring(0, 80) + '...' 
-                      : choice.text}
-                  </text>
-                </hstack>
-              ))}
+              <text size="small" weight="bold" color="#00FFFF" alignment="center middle">
+                What happens next?
+              </text>
+              <vstack width={'100%'} gap="small" alignment="center middle">
+                {scene.choices.map((choice: any, index: number) => (
+                  <hstack key={choice.id} width={'100%'} gap="small" alignment="start middle">
+                    <text size="small" color="#FFFF00" weight="bold">
+                      [{index + 1}]
+                    </text>
+                    <text size="small" color="#CCCCCC" wrap>
+                      {choice.text.length > 80 
+                        ? choice.text.substring(0, 80) + '...' 
+                        : choice.text}
+                    </text>
+                  </hstack>
+                ))}
+              </vstack>
             </vstack>
-          </vstack>
-        )}
-        
-        {/* Ending Message */}
-        {isEnding && (
-          <vstack width={'100%'} gap="small" alignment="center middle">
-            <text size="medium" weight="bold" color="accent" alignment="center middle">
-              🎭 Story Complete!
-            </text>
-            <text size="small" color="neutral-content-weak" alignment="center middle">
-              This adventure has reached its conclusion
-            </text>
-          </vstack>
-        )}
-        
-        {/* Enter Button */}
-        <button appearance="primary" onPress={mount}>
-          {isEnding ? 'View Full Story' : 'Continue the Adventure'}
-        </button>
-      </vstack>
+          )}
+          
+          {/* Ending Message */}
+          {isEnding && (
+            <vstack width={'100%'} gap="small" alignment="center middle">
+              <text size="medium" weight="bold" color="#FF0080" alignment="center middle">
+                🎭 Story Complete!
+              </text>
+              <text size="small" color="#CCCCCC" alignment="center middle">
+                This adventure has reached its conclusion
+              </text>
+            </vstack>
+          )}
+          
+          {/* Enter Button */}
+          <button appearance="primary" onPress={mount}>
+            {isEnding ? 'View Full Story' : 'Continue the Adventure'}
+          </button>
+        </vstack>
+      </zstack>
     );
   } else {
     // No game data - show default interface
     return (
-      <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
-        <text size="xxlarge" weight="bold" alignment="center middle">
-          Choose Your Own Chaos
-        </text>
-        <text size="medium" color="neutral-content-weak" alignment="center middle" wrap>
-          Let the chaos begin!
-        </text>
-        <button appearance="primary" onPress={mount}>
-          Enter
-        </button>
-      </vstack>
+      <zstack width={'100%'} height={'100%'} alignment="center middle">
+        <image 
+          url="https://i.imgur.com/neon-bg.png" 
+          imageWidth={400} 
+          imageHeight={300} 
+          width={'100%'} 
+          height={'100%'} 
+          resizeMode="cover"
+        />
+        <vstack width={'100%'} height={'100%'} alignment="center middle" gap="medium">
+          <text size="xxlarge" weight="bold" alignment="center middle" color="#00FFFF">
+            Choose Your Own Chaos
+          </text>
+          <text size="medium" color="#CCCCCC" alignment="center middle" wrap>
+            Let the chaos begin!
+          </text>
+          <button appearance="primary" onPress={mount}>
+            Enter
+          </button>
+        </vstack>
+      </zstack>
     );
   }
 };
