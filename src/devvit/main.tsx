@@ -495,7 +495,7 @@ const App: Devvit.BlockComponent = (context) => {
 
         // Show the form
         try {
-          context.ui.showForm(createFormForWebView);
+          context.ui.showForm(createChaosStoryForm);
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
