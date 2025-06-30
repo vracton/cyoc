@@ -494,9 +494,80 @@ const App: Devvit.BlockComponent = (context) => {
         });
 
         // Show the form
+
+        const createChaosStoryForm2 = Devvit.createForm(formConfig, async (event, context) => {
+  const { ui, redis, reddit, userId } = context;
+  const values = event.values;
+
+  if (!values.title || !values.initialPrompt || !values.chaosLevel) {
+    ui.showToast({ text: 'Please fill in all fields!' });
+    return;
+  }
+
+  let post: any;
+  try {
+    console.log('Creating game via menu action with values:', values);
+    
+    // Get current user info
+    let username = undefined;
+    try {
+      if (userId) {
+        const user = await reddit.getUserById(userId);
+        username = user.username;
+      }
+    } catch (error) {
+      console.error('Error getting username for menu action:', error);
+    }
+    
+    // Create the chaos game using server-side function
+    const result = await createChaosGame({
+      title: values.title as string,
+      initialPrompt: values.initialPrompt as string,
+      chaosLevel: parseInt(values.chaosLevel as string)
+    }, { redis, userId, username, reddit });
+
+    console.log('Menu action game creation result:', result);
+
+    if (result.status === 'error') {
+      throw new Error(result.message);
+    }
+
+    // Now create a Reddit post for this game
+    const subreddit = await reddit.getCurrentSubreddit();
+    post = await reddit.submitPost({
+      title: values.title as string,
+      subredditName: subreddit.name,
+      preview: <Preview postId={''} />, // We'll update this after we get the post ID
+      runAs: 'USER',
+      userGeneratedContent: { text: values.title as string }
+    });
+
+    // Store the game ID in the post config
+    await redis.set(`post_game:${post.id}`, result.gameId);
+    console.log('Menu action: Stored game ID in post config:', post.id, result.gameId);
+
+    ui.showToast({ text: 'Chaos story and post created successfully!' });
+    ui.navigateTo(post.url);
+    
+  } catch (error) {
+    console.error('Error creating chaos story via menu:', error);
+    
+    // Clean up the post if it was created
+    if (post) {
+      try {
+        await post.remove(false);
+      } catch (cleanupError) {
+        console.error('Error cleaning up post:', cleanupError);
+      }
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    ui.showToast({ text: `Error creating story: ${errorMessage}` });
+  }
+});
         try {
           const { ui } = context;
-          ui.showForm(createChaosStoryForm);
+          ui.showForm(createChaosStoryForm2);
         } catch (error) {
           console.error('Error showing form:', error);
           webView.postMessage({
