@@ -469,6 +469,8 @@ export async function voteOnHistoryChoice(
       return { status: 'error', message: 'Invalid vote type' };
     }
 
+    console.log(`Processing vote: User ${context.userId} voting ${voteType} on history index ${data.historyIndex}`);
+
     const gameResult = await getChaosGame(data.gameId, context);
     if (gameResult.status === 'error') {
       return gameResult;
@@ -488,25 +490,47 @@ export async function voteOnHistoryChoice(
       historyEntry.chaosVotes = { mild: [], wild: [], insane: [] };
     }
 
-    // Remove user's previous vote if any
+    console.log('Before vote removal:', JSON.stringify(historyEntry.chaosVotes));
+
+    // Check if user has already voted and what type
+    let previousVoteType: ChaosVoteType | null = null;
+    if (historyEntry.chaosVotes.mild.includes(context.userId)) {
+      previousVoteType = 'mild';
+    } else if (historyEntry.chaosVotes.wild.includes(context.userId)) {
+      previousVoteType = 'wild';
+    } else if (historyEntry.chaosVotes.insane.includes(context.userId)) {
+      previousVoteType = 'insane';
+    }
+
+    console.log(`Previous vote type: ${previousVoteType}, New vote type: ${voteType}`);
+
+    // Remove user's previous vote if any (CRITICAL FIX)
     historyEntry.chaosVotes.mild = historyEntry.chaosVotes.mild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.wild = historyEntry.chaosVotes.wild.filter(id => id !== context.userId);
     historyEntry.chaosVotes.insane = historyEntry.chaosVotes.insane.filter(id => id !== context.userId);
 
+    console.log('After vote removal:', JSON.stringify(historyEntry.chaosVotes));
+
     // Add new vote
     historyEntry.chaosVotes[voteType].push(context.userId!);
+
+    console.log('After adding new vote:', JSON.stringify(historyEntry.chaosVotes));
 
     // Recalculate chaos level
     historyEntry.chaosLevel = calculateChoiceChaosLevel(historyEntry.chaosVotes);
 
-    // Update user's chaos profile
-    const userProfile = await updateUserChaosProfile(context.userId!, voteType, context);
+    console.log(`Recalculated chaos level: ${historyEntry.chaosLevel}`);
+
+    // Update user's chaos profile - handle vote changes properly
+    const userProfile = await updateUserChaosProfile(context.userId!, voteType, previousVoteType, context);
 
     // Save updated game
     await context.redis.set(getChaosGameKey(data.gameId), JSON.stringify(game));
 
     // Update leaderboard
     await updateLeaderboard(userProfile, context);
+
+    console.log(`Vote processed successfully. Final chaos votes:`, historyEntry.chaosVotes);
 
     return { status: 'success', historyEntry, userProfile };
   } catch (error) {
@@ -564,7 +588,8 @@ export async function getChaosLeaderboard(
 
 async function updateUserChaosProfile(
   userId: string,
-  voteType: ChaosVoteType,
+  newVoteType: ChaosVoteType,
+  previousVoteType: ChaosVoteType | null,
   context: { redis: RedisClient; username?: string }
 ): Promise<UserChaosProfile> {
   const profileResult = await getUserChaosProfile(userId, context);
@@ -584,9 +609,25 @@ async function updateUserChaosProfile(
     };
   }
 
-  // Update profile with new vote
-  profile.totalChaosVotes += 1;
-  profile.chaosContributions[voteType] += 1;
+  console.log(`Updating user profile. Previous vote: ${previousVoteType}, New vote: ${newVoteType}`);
+  console.log('Profile before update:', JSON.stringify(profile.chaosContributions));
+
+  // Handle vote changes properly
+  if (previousVoteType) {
+    // User is changing their vote, so remove the previous vote count
+    profile.chaosContributions[previousVoteType] = Math.max(0, profile.chaosContributions[previousVoteType] - 1);
+    // Don't change totalChaosVotes since we're replacing, not adding
+  } else {
+    // User is voting for the first time on this choice
+    profile.totalChaosVotes += 1;
+  }
+
+  // Add the new vote
+  profile.chaosContributions[newVoteType] += 1;
+
+  console.log('Profile after update:', JSON.stringify(profile.chaosContributions));
+
+  // Recalculate global chaos level
   profile.globalChaosLevel = calculateUserGlobalChaosLevel(profile);
   profile.lastUpdated = Date.now();
   
@@ -596,6 +637,8 @@ async function updateUserChaosProfile(
 
   // Save updated profile
   await context.redis.set(getUserChaosProfileKey(userId), JSON.stringify(profile));
+  
+  console.log(`User profile updated. New global chaos level: ${profile.globalChaosLevel}`);
   
   return profile;
 }
